@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Star, Trash2, ExternalLink, ChevronDown, ChevronRight, CheckCircle, Pencil, Undo2 } from 'lucide-react';
+import { MoreHorizontal, Star, Trash2, ExternalLink, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -218,25 +218,10 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                                 Edit
                               </DropdownMenuItem>
                               
-                              {problem.status === 'active' && (
-                                <>
-                                  <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { isReview: !problem.isReview })}>
-                                    <Star className="mr-2 h-5 w-5" />
-                                    {problem.isReview ? 'Unmark review' : 'Mark for review'}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { status: 'learned' })}>
-                                    <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
-                                    Mark as Learned
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-
-                              {problem.status === 'learned' && (
-                                <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { status: 'active' })}>
-                                  <Undo2 className="mr-2 h-5 w-5" />
-                                  Mark as Unlearned
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { isReview: !problem.isReview })}>
+                                <Star className="mr-2 h-5 w-5" />
+                                {problem.isReview ? 'Unmark review' : 'Mark for review'}
+                              </DropdownMenuItem>
 
                               <DropdownMenuItem onClick={() => setProblemToDelete(problem.id)}>
                                 <Trash2 className="mr-2 h-5 w-5" />

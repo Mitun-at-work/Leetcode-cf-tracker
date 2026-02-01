@@ -45,10 +45,7 @@ export const leetcodeTopics = [
   "Probability and Statistics",
   "Suffix Array",
   "Concurrency",
-];
-
-export const codeforcesTopics = [
-  "Implementation",
+    "Implementation",
   "Math",
   "Greedy",
   "DP",
@@ -76,4 +73,8 @@ export const codeforcesTopics = [
   "Games",
   "FFT",
   "Schedules",
+];
+
+export const codeforcesTopics = [
+
 ]; 
