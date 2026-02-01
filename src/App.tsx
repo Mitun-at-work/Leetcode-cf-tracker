@@ -19,10 +19,8 @@ import type { Contest } from './types';
 import ContestTracker from './components/ContestTracker';
 import { Badge } from '@/components/ui/badge';
 import CompanyView from './components/CompanyView';
-import CompanyProblemsView from './components/CompanyProblemsView';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import Sheets from './components/Sheets';
-import SyncStatus from './components/SyncStatus';
+// import CompanyProblemsView from './components/CompanyProblemsView';
+// import Sheets from './components/Sheets';
 
 
 function App() {
@@ -395,6 +393,7 @@ function App() {
     platform: 'leetcode',
     dateSolved: new Date().toISOString(),
     notes: '',
+    submissionLink: '',
     isReview: false,
     topics: [],
     companies: [],
@@ -478,9 +477,8 @@ function App() {
                   {problems.length} problem{problems.length !== 1 ? 's' : ''} tracked
                 </span>
 
-                <SyncStatus />
 
-                {isAuthenticated && currentUser ? (
+                {/* {isAuthenticated && currentUser ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="flex items-center space-x-2">
@@ -500,7 +498,7 @@ function App() {
                     <User className="mr-2 h-4 w-4" />
                     Login
                   </Button>
-                )}
+                )} */}
 
                 <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                   <Sun className="h-6 w-6 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -537,11 +535,11 @@ function App() {
                   <Home className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Dashboard</span>
                 </TabsTrigger>
-                <TabsTrigger value="companies">
+                {/* <TabsTrigger value="companies">
                   <Building2 className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Companies</span>
-                </TabsTrigger>
-                <TabsTrigger value="company-problems">
+                </TabsTrigger> */}
+                {/* <TabsTrigger value="company-problems">
                   <Building2 className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Company Problems</span>
                   {companyProblems.length > 0 && (
@@ -549,15 +547,15 @@ function App() {
                       {companyProblems.length}
                     </Badge>
                   )}
-                </TabsTrigger>
-                <TabsTrigger value="potd">
+                </TabsTrigger> */}
+                {/* <TabsTrigger value="potd">
                   <History className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">POTD</span>
-                </TabsTrigger>
-                <TabsTrigger value="contests">
+                </TabsTrigger> */}
+                {/* <TabsTrigger value="contests">
                   <Trophy className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Contests</span>
-                </TabsTrigger>
+                </TabsTrigger> */}
                 <TabsTrigger value="problems">
                   <List className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Problems</span>
@@ -579,10 +577,7 @@ function App() {
                   <BarChart3 className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Analytics</span>
                 </TabsTrigger>
-                <TabsTrigger value="sheets">
-                  <FileText className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">DSA & CP</span>
-                </TabsTrigger>
+               
               </TabsList>
             </div>
 
@@ -603,13 +598,13 @@ function App() {
                 onProblemReviewed={handleProblemReviewed}
               />
             </TabsContent>
-            <TabsContent value="company-problems">
+            {/* <TabsContent value="company-problems">
               <CompanyProblemsView
                 companyProblems={companyProblems}
                 onMarkAsSolved={handleMarkCompanyProblemAsSolved}
                 onRemoveProblem={handleRemoveCompanyProblem}
               />
-            </TabsContent>
+            </TabsContent> */}
             <TabsContent value="potd">
               {renderProblemList(potdProblems, true)}
             </TabsContent>
@@ -641,9 +636,7 @@ function App() {
             <TabsContent value="analytics">
               <Analytics problems={problems} />
             </TabsContent>
-            <TabsContent value="sheets">
-              <Sheets />
-            </TabsContent>
+        
           </Tabs>
         </main>
         <Toaster />

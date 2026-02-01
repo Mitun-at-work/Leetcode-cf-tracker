@@ -5,6 +5,7 @@ export interface Problem {
   problemId: string;
   difficulty: string;
   url: string;
+  submissionLink?: string;
   dateSolved: string;
   createdAt: string;
   notes: string;

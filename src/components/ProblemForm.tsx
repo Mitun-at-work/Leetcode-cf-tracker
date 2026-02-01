@@ -10,6 +10,7 @@ import { MultiSelect, type Option } from '@/components/ui/multi-select';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { leetcodeTopics, codeforcesTopics } from '@/lib/topics';
 import { companies } from '@/lib/companies';
+import { toast } from 'sonner';
 
 interface ProblemFormProps {
   open: boolean;
@@ -26,6 +27,7 @@ const INITIAL_FORM_STATE: FormData = {
   title: '',
   difficulty: '',
   url: '',
+  submissionLink: '',
   dateSolved: new Date().toISOString().split('T')[0],
   notes: '',
   isReview: false,
@@ -87,7 +89,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.difficulty.trim()) {
-      // toast.error('Please fill in required fields'); // Removed toast import
+      toast.error('Please fill in required fields');
       return;
     }
 
@@ -98,10 +100,10 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
 
     if (problemToEdit) {
       onUpdateProblem(problemToEdit.id, problemData);
-      // toast.success('Problem updated successfully!'); // Removed toast import
+      toast.success('Problem updated successfully!');
     } else {
       onAddProblem(problemData);
-      // toast.success('Problem added successfully!'); // Removed toast import
+      toast.success('Problem added successfully!');
     }
     
     onOpenChange(false);
@@ -182,6 +184,18 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
               onChange={handleInputChange}
               placeholder="https://leetcode.com/problems/two-sum/"
               data-testid="url-input"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="submissionLink">Submission Link (optional)</Label>
+            <Input
+              id="submissionLink"
+              name="submissionLink"
+              value={formData.submissionLink || ''}
+              onChange={handleInputChange}
+              placeholder="https://leetcode.com/submissions/detail/..."
+              data-testid="submission-link-input"
             />
           </div>
 

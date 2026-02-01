@@ -139,6 +139,14 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                           )}
                           {problem.isReview && <Star className={`ml-2 h-5 w-5 ${isDueForReview(problem) ? 'text-blue-500' : 'text-yellow-500'}`} />}
                         </div>
+                        {problem.submissionLink && (
+                          <div className="mt-1">
+                            <a href={problem.submissionLink} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:underline flex items-center">
+                              View Submission
+                              <ExternalLink className="ml-1 h-3 w-3" />
+                            </a>
+                          </div>
+                        )}
                         {problem.topics && problem.topics.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {problem.topics.map(topic => (
