@@ -58,16 +58,6 @@ const Analytics = ({ problems }: AnalyticsProps) => {
     ? difficultyData
     : [{ name: 'No data', value: 1, color: '#e5e7eb' }];
 
-  const getCodeforcesDifficulty = (rating: number) => {
-    if (rating < 1200) return { name: 'Newbie', color: '#808080' }; // Grey
-    if (rating < 1400) return { name: 'Pupil', color: '#008000' }; // Green
-    if (rating < 1600) return { name: 'Specialist', color: '#00FFFF' }; // Cyan
-    if (rating < 1900) return { name: 'Expert', color: '#0000FF' }; // Blue
-    if (rating < 2100) return { name: 'Candidate Master', color: '#FF00FF' }; // Magenta
-    return { name: 'Master+', color: '#FF0000' }; // Red
-  };
-
-
   const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
   const submissionData = last7Days.map(date => {
     const dateStr = format(date, 'yyyy-MM-dd');

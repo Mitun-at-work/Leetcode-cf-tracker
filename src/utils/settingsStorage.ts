@@ -46,5 +46,5 @@ export const getDailyGoal = (): number => {
     console.error('Error loading daily goal:', error);
   }
 
-  return 1;
+  return 4;
 };

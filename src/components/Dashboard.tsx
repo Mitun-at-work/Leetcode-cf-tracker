@@ -1,26 +1,17 @@
 import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { BookCopy, CalendarDays, Star, Trophy, Clock, Flame, Target } from 'lucide-react';
 import { isToday, isPast } from 'date-fns';
-import type { ActiveDailyCodingChallengeQuestion } from '../types';
 import { format, isSameDay, subDays, eachDayOfInterval, differenceInDays, eachWeekOfInterval } from 'date-fns';
-import ImportProblems from './ImportProblems';
-import { useState } from 'react';
 import { Progress } from '@/components/ui/progress';
-import { getDailyGoal } from '@/utils/settingsStorage';
 
 
 interface DashboardProps {
   problems: Problem[];
-  onUpdateProblem: (id: string, updates: Partial<Problem>) => void;
-  onAddPotd: (potd: ActiveDailyCodingChallengeQuestion) => void;
-  onImportProblems: (problems: Partial<Problem>[]) => void;
 }
 
-const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: DashboardProps) => {
-  const [isImporting, setIsImporting] = useState(false);
+const Dashboard = ({ problems }: DashboardProps) => {
   const totalProblems = problems.length;
   const thisWeek = problems.filter((p) => {
     const weekAgo = new Date();
@@ -60,26 +51,62 @@ const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: D
   const xpIntoLevel = totalXp % 100;
   const xpToNext = 100 - xpIntoLevel;
 
+
+  const getLevelName = (xp: number) => {
+    const tier = Math.floor(xp / 3000);
+    switch (tier) {
+      case 0:
+        return 'Novice';
+      case 1:
+        return 'Rookie';
+      case 2:
+        return 'Adept';
+      case 3:
+        return 'Specialist';
+      case 4:
+        return 'Expert';
+      case 5:
+        return 'Elite';
+      case 6:
+        return 'Veteran';
+      case 7:
+        return 'Champion';
+      default:
+        return 'Legend';
+    }
+  };
+
+  const currentLevelName = getLevelName(totalXp);
+  const getLevelColor = (xp: number) => {
+    const tier = Math.floor(xp / 3000);
+    switch (tier) {
+      case 0:
+        return 'text-gray-500';
+      case 1:
+        return 'text-green-500';
+      case 2:
+        return 'text-cyan-500';
+      case 3:
+        return 'text-violet-500';
+      case 4:
+        return 'text-orange-500';
+      case 5:
+        return 'text-yellow-500';
+      case 6:
+        return 'text-pink-500';
+      case 7:
+        return 'text-amber-800';
+      default:
+        return 'text-red-500';
+    }
+  };
+
   const getProgressColor = (value: number) => {
     if (value <= 25) return 'bg-red-500';
     if (value <= 50) return 'bg-yellow-500';
     if (value <= 75) return 'bg-orange-500';
     if (value >= 100) return 'bg-green-500';
     return 'bg-purple-500';
-  };
-
-  const getDifficultyBadgeVariant = (difficulty: string, platform: string): "default" | "destructive" | "secondary" | "outline" | "success" | "warning" => {
-    if (platform === 'codeforces') return 'default';
-    switch (difficulty) {
-      case 'Easy':
-        return 'success';
-      case 'Medium':
-        return 'warning';
-      case 'Hard':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
   };
 
   const calculateStreaks = (problems: Problem[]) => {
@@ -221,10 +248,10 @@ const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: D
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">Level {level}</div>
+              <div className={`text-2xl font-bold ${getLevelColor(totalXp)}`}>Level {level}</div>
               <div className="text-sm text-muted-foreground">{totalXp} XP</div>
             </div>
-            <div className="text-sm text-muted-foreground">{xpToNext} XP to next level</div>
+            <div className="text-sm text-muted-foreground">{currentLevelName} • {xpToNext} XP to next level</div>
             <Progress value={xpIntoLevel} indicatorClassName={getProgressColor(xpIntoLevel)} />
           </CardContent>
         </Card>

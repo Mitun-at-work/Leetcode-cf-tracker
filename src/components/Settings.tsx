@@ -102,12 +102,33 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       reader.onload = (event) => {
         try {
           const data = JSON.parse(event.target?.result as string);
-          StorageService.saveProblems(data.problems || []);
-          StorageService.savePotdProblems(data.potdProblems || []);
-          StorageService.saveContests(data.contests || []);
-          saveReviewIntervals(data.reviewIntervals || []);
-          saveDailyGoal(typeof data.dailyGoal === 'number' ? data.dailyGoal : 1);
-          onSettingsSave(data.reviewIntervals || []);
+          const problems = Array.isArray(data.problems) ? data.problems : [];
+          const potdProblems = Array.isArray(data.potdProblems) ? data.potdProblems : [];
+          const contests = Array.isArray(data.contests) ? data.contests : [];
+          const reviewIntervals = Array.isArray(data.reviewIntervals) ? data.reviewIntervals : getReviewIntervals();
+          const dailyGoal = typeof data.dailyGoal === 'number' && data.dailyGoal > 0 ? data.dailyGoal : getDailyGoal();
+
+          const normalizeProblem = (p: any) => ({
+            ...p,
+            id: p?.id || crypto.randomUUID(),
+            createdAt: p?.createdAt || new Date().toISOString(),
+            dateSolved: p?.dateSolved || new Date().toISOString(),
+            notes: p?.notes || '',
+            isReview: typeof p?.isReview === 'boolean' ? p.isReview : false,
+            repetition: typeof p?.repetition === 'number' ? p.repetition : 0,
+            interval: typeof p?.interval === 'number' ? p.interval : 0,
+            nextReviewDate: p?.nextReviewDate ?? null,
+            status: p?.status || 'active',
+            companies: Array.isArray(p?.companies) ? p.companies : [],
+            topics: Array.isArray(p?.topics) ? p.topics : [],
+          });
+
+          StorageService.saveProblems(problems.map(normalizeProblem));
+          StorageService.savePotdProblems(potdProblems.map(normalizeProblem));
+          StorageService.saveContests(contests);
+          saveReviewIntervals(reviewIntervals);
+          saveDailyGoal(dailyGoal);
+          onSettingsSave(reviewIntervals);
           toast.success('Data imported successfully! Please refresh the page.');
         } catch (error) {
           toast.error('Invalid file format');
