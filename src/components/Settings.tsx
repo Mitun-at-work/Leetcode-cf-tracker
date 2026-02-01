@@ -64,21 +64,26 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
   };
 
   // Function to export data
-  const handleExport = () => {
-    const data = {
-      problems: StorageService.getProblems(),
-      potdProblems: StorageService.getPotdProblems(),
-      contests: StorageService.getContests(),
-      reviewIntervals: getReviewIntervals(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tracker-data.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Data exported successfully!');
+  const handleExport = async () => {
+    try {
+      const data = {
+        problems: await StorageService.getProblems(),
+        potdProblems: await StorageService.getPotdProblems(),
+        contests: await StorageService.getContests(),
+        reviewIntervals: getReviewIntervals(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tracker-data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Data exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export data');
+    }
   };
 
   // Function to import data
@@ -153,9 +158,11 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             <div className="flex space-x-2">
               <Button onClick={handleExport}>Export Data</Button>
               <Input type="file" accept=".json" onChange={handleImport} className="hidden" id="import-file" />
-              <label htmlFor="import-file" className="cursor-pointer">
-                <Button>Import Data</Button>
-              </label>
+              <Button asChild>
+                <label htmlFor="import-file" className="cursor-pointer">
+                  Import Data
+                </label>
+              </Button>
             </div>
           </div>
         </div>

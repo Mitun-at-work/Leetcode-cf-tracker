@@ -59,10 +59,6 @@ function App() {
                   </Button>
                 </SettingsComponent>
 
-                <span className="text-sm text-muted-foreground">
-                  {problems.length} problem{problems.length !== 1 ? 's' : ''} tracked
-                </span>
-
                 <Button
                   variant="ghost"
                   size="icon"

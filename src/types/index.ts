@@ -1,6 +1,6 @@
 export interface Problem {
   id: string;
-  platform: 'leetcode' | 'codeforces' | 'atcoder';
+  platform: 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses';
   title: string;
   problemId: string;
   difficulty: string;
@@ -20,6 +20,9 @@ export interface Problem {
 export interface PlatformStats {
   leetcode: number;
   codeforces: number;
+  atcoder: number;
+  algozenith: number;
+  cses: number;
 }
 
 export interface DifficultyStats {
@@ -29,6 +32,21 @@ export interface DifficultyStats {
     hard: number;
   };
   codeforces: Record<string, number>;
+  atcoder: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+  algozenith: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+  cses: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
 }
 
 export interface OverallStats {

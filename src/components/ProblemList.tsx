@@ -34,6 +34,22 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+const PLATFORM_LABELS: Record<Problem['platform'], string> = {
+  leetcode: 'LeetCode',
+  codeforces: 'CodeForces',
+  atcoder: 'AtCoder',
+  algozenith: 'AlgoZenith',
+  cses: 'CSES',
+};
+
+const PLATFORM_LINKS: Record<Problem['platform'], string> = {
+  leetcode: 'https://leetcode.com',
+  codeforces: 'https://codeforces.com',
+  atcoder: 'https://atcoder.jp',
+  algozenith: 'https://algozenith.com',
+  cses: 'https://cses.fi',
+};
+
 interface ProblemListProps {
   problems: Problem[];
   onUpdateProblem: (id: string, updates: Partial<Problem>) => void;
@@ -74,24 +90,23 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
     return reviewDate <= today;
   };
 
-  const getDifficultyBadgeVariant = (difficulty: string, platform: string): "default" | "destructive" | "secondary" | "outline" | "success" | "warning" => {
-    if (platform === 'codeforces') return 'default';
+  const getDifficultyBadgeClass = (difficulty: string): string => {
     switch (difficulty) {
       case 'Easy':
-        return 'success';
+        return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
       case 'Medium':
-        return 'warning';
+        return 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600';
       case 'Hard':
-        return 'destructive';
+        return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
       default:
-        return 'secondary';
+        return 'bg-foreground text-background border-foreground';
     }
   };
 
   return (
     <Card>
         <CardHeader>
-            <CardTitle>Problems</CardTitle>
+            <CardTitle>Problems</CardTitle> 
             <div className="flex justify-between items-center pt-4">
                 <p className="text-sm text-muted-foreground">
                     {filteredProblems.length} of {problems.length} problems
@@ -114,6 +129,7 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                 <TableHead>Problem</TableHead>
                 <TableHead>Platform</TableHead>
                 <TableHead>Difficulty / Rating</TableHead>
+                <TableHead>Submission</TableHead>
                 <TableHead>Next Review</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -138,38 +154,41 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                           )}
                           {problem.isReview && <Star className={`ml-2 h-5 w-5 ${isDueForReview(problem) ? 'text-blue-500' : 'text-yellow-500'}`} />}
                         </div>
-                        {problem.submissionLink && (
-                          <div className="mt-1">
-                            <a href={problem.submissionLink} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:underline flex items-center">
-                              View Submission
-                              <ExternalLink className="ml-1 h-3 w-3" />
-                            </a>
-                          </div>
-                        )}
                         {problem.topics && problem.topics.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
+                          <div className="mt-4 mb-4 flex flex-wrap gap-2">
                             {problem.topics.map(topic => (
-                              <Badge key={topic} variant="secondary">{topic}</Badge>
+                              <Badge key={topic} variant="outline" className="bg-black text-white border-black dark:bg-white dark:text-black dark:border-white">{topic}</Badge>
                             ))}
                           </div>
                         )}
-                        {problem.companies && problem.companies.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {problem.companies.map(company => (
-                              <Badge key={company} variant="default">{company}</Badge>
-                            ))}
-                          </div>
-                        )}
+
                       </TableCell>
                       <TableCell>
-                        <Badge variant={problem.platform === 'leetcode' ? 'outline' : 'default'}>
-                          {problem.platform === 'leetcode' ? 'LeetCode' : 'CodeForces'}
-                        </Badge>
+                        <a
+                          href={PLATFORM_LINKS[problem.platform]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex"
+                        >
+                          <Badge variant={problem.platform === 'leetcode' ? 'outline' : 'default'}>
+                            {PLATFORM_LABELS[problem.platform]}
+                          </Badge>
+                        </a>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getDifficultyBadgeVariant(problem.difficulty, problem.platform)}>
+                        <Badge variant="outline" className={getDifficultyBadgeClass(problem.difficulty)}>
                           {problem.difficulty}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {problem.submissionLink ? (
+                          <a href={problem.submissionLink} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline flex items-center">
+                            View
+                            <ExternalLink className="ml-1 h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">N/A</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {isDueForReview(problem) ? (
@@ -230,7 +249,7 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                     </TableRow>
                     {expandedRows.has(problem.id) && (
                       <TableRow>
-                        <TableCell colSpan={5}>
+                        <TableCell colSpan={6}>
                           <div className="p-4 bg-muted/50 rounded-md">
                             <h4 className="font-semibold mb-2">Notes</h4>
                             <div className="prose dark:prose-invert max-w-none">
@@ -246,7 +265,7 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     No results.
                   </TableCell>
                 </TableRow>

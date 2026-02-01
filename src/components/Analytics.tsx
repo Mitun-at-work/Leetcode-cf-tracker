@@ -14,6 +14,9 @@ const Analytics = ({ problems }: AnalyticsProps) => {
 
   const leetcodeProblems = problems.filter((p) => p.platform === 'leetcode');
   const codeforcesProblems = problems.filter((p) => p.platform === 'codeforces');
+  const atcoderProblems = problems.filter((p) => p.platform === 'atcoder');
+  const algozenithProblems = problems.filter((p) => p.platform === 'algozenith');
+  const csesProblems = problems.filter((p) => p.platform === 'cses');
 
   const difficultyData = [
     { name: 'Easy', value: leetcodeProblems.filter((p) => p.difficulty === 'Easy').length, color: 'hsl(var(--success))' },
@@ -22,9 +25,14 @@ const Analytics = ({ problems }: AnalyticsProps) => {
   ];
 
   const platformData = [
-    { name: 'LeetCode', value: leetcodeProblems.length, color: 'hsl(var(--primary))' },
-    { name: 'Codeforces', value: codeforcesProblems.length, color: 'hsl(var(--secondary))' },
+    { name: 'LeetCode', value: leetcodeProblems.length, color: '#2563eb' }, // blue-600
+    { name: 'Codeforces', value: codeforcesProblems.length, color: '#f97316' }, // orange-500
+    { name: 'AtCoder', value: atcoderProblems.length, color: '#22c55e' }, // green-500
+    { name: 'AlgoZenith', value: algozenithProblems.length, color: '#a855f7' }, // purple-500
+    { name: 'CSES', value: csesProblems.length, color: '#ef4444' }, // red-500
   ];
+
+  const totalSolved = problems.length;
 
   const getCodeforcesDifficulty = (rating: number) => {
     if (rating < 1200) return { name: 'Newbie', color: '#808080' }; // Grey
@@ -35,19 +43,6 @@ const Analytics = ({ problems }: AnalyticsProps) => {
     return { name: 'Master+', color: '#FF0000' }; // Red
   };
 
-  const codeforcesDifficultyData = Object.values(
-    codeforcesProblems.reduce((acc, p) => {
-      const rating = parseInt(p.difficulty, 10);
-      if (isNaN(rating)) return acc;
-
-      const group = getCodeforcesDifficulty(rating);
-      if (!acc[group.name]) {
-        acc[group.name] = { name: group.name, value: 0, color: group.color };
-      }
-      acc[group.name].value += 1;
-      return acc;
-    }, {} as Record<string, { name: string; value: number; color: string }>)
-  );
 
   const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
   const submissionData = last7Days.map(date => {
@@ -72,33 +67,15 @@ const Analytics = ({ problems }: AnalyticsProps) => {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>LeetCode Problems</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{leetcodeProblems.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Codeforces Problems</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{codeforcesProblems.length}</div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Problems by Topic</CardTitle>
           </CardHeader>
           <CardContent>
             <ClientOnly>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={500}>
                 <BarChart data={topicsData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" stroke={theme === 'dark' ? '#fff' : '#000'} />
@@ -109,12 +86,15 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                       borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
                     }}
                   />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  <Bar dataKey="value" fill="#d1d5db" />
                 </BarChart>
               </ResponsiveContainer>
             </ClientOnly>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Submissions in the Last 7 Days</CardTitle>
@@ -125,14 +105,14 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                 <BarChart data={submissionData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" stroke={theme === 'dark' ? '#fff' : '#000'} />
-                  <YAxis allowDecimals={false} stroke={theme === 'dark' ? '#fff' : '#000'}/>
+                  <YAxis allowDecimals={false} stroke={theme === 'dark' ? '#fff' : '#000'} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: theme === 'dark' ? '#030712' : '#fff',
                       borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
                     }}
                   />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" />
+                  <Bar dataKey="count" fill="#d1d5db" />
                 </BarChart>
               </ResponsiveContainer>
             </ClientOnly>
@@ -162,6 +142,16 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
+                  <text
+                    x="50%"
+                    y="50%"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill={theme === 'dark' ? '#fff' : '#000'}
+                    style={{ fontSize: '20px', fontWeight: 600 }}
+                  >
+                    {totalSolved}
+                  </text>
                   <Tooltip
                     contentStyle={{
                       backgroundColor: theme === 'dark' ? '#030712' : '#fff',
@@ -198,42 +188,16 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
-                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
-                    }}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </ClientOnly>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Codeforces Difficulty Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ClientOnly>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={codeforcesDifficultyData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={false}
-                    outerRadius={80}
-                    innerRadius={60}
-                    paddingAngle={5}
-                    fill="#8884d8"
-                    dataKey="value"
+                  <text
+                    x="50%"
+                    y="50%"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill={theme === 'dark' ? '#fff' : '#000'}
+                    style={{ fontSize: '20px', fontWeight: 600 }}
                   >
-                    {codeforcesDifficultyData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
+                    {totalSolved}
+                  </text>
                   <Tooltip
                     contentStyle={{
                       backgroundColor: theme === 'dark' ? '#030712' : '#fff',
@@ -246,6 +210,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
             </ClientOnly>
           </CardContent>
         </Card>
+
       </div>
 
       {problems.length === 0 && (
