@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getReviewIntervals, saveReviewIntervals } from '@/utils/settingsStorage';
+import { getDailyGoal, getReviewIntervals, saveDailyGoal, saveReviewIntervals } from '@/utils/settingsStorage';
 import { toast } from 'sonner';
 import { X, Plus } from 'lucide-react';
 import StorageService from '@/utils/storage';
@@ -28,11 +28,13 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
   const [intervals, setIntervals] = useState<number[]>([]);
   // Add state for notifications toggle
   const [enableNotifications, setEnableNotifications] = useState(false);
+  const [dailyGoal, setDailyGoal] = useState(1);
 
   useEffect(() => {
     if (open) {
       setIntervals(getReviewIntervals());
       setEnableNotifications(localStorage.getItem('enableNotifications') === 'true');
+      setDailyGoal(getDailyGoal());
     }
   }, [open]);
 
@@ -56,7 +58,12 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       toast.error('Intervals must be positive numbers.');
       return;
     }
+    if (dailyGoal <= 0) {
+      toast.error('Daily goal must be a positive number.');
+      return;
+    }
     saveReviewIntervals(intervals);
+    saveDailyGoal(dailyGoal);
     onSettingsSave(intervals);
     toast.success('Settings saved!');
     setOpen(false);
@@ -71,6 +78,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
         potdProblems: await StorageService.getPotdProblems(),
         contests: await StorageService.getContests(),
         reviewIntervals: getReviewIntervals(),
+        dailyGoal: getDailyGoal(),
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -98,6 +106,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
           StorageService.savePotdProblems(data.potdProblems || []);
           StorageService.saveContests(data.contests || []);
           saveReviewIntervals(data.reviewIntervals || []);
+          saveDailyGoal(typeof data.dailyGoal === 'number' ? data.dailyGoal : 1);
           onSettingsSave(data.reviewIntervals || []);
           toast.success('Data imported successfully! Please refresh the page.');
         } catch (error) {
@@ -105,6 +114,31 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
         }
       };
       reader.readAsText(file);
+    }
+  };
+
+  const handleResetData = async () => {
+    const confirmed = window.confirm(
+      'This will clear all problems, contests, and settings data. This action cannot be undone. Continue?'
+    );
+    if (!confirmed) return;
+
+    try {
+      await StorageService.saveProblems([]);
+      await StorageService.savePotdProblems([]);
+      await StorageService.saveContests([]);
+      localStorage.removeItem('company-problems');
+      localStorage.removeItem('offline-mode');
+      localStorage.removeItem('leetcode-cf-tracker-review-intervals');
+      localStorage.removeItem('leetcode-cf-tracker-daily-goal');
+      localStorage.removeItem('enableNotifications');
+      setIntervals(getReviewIntervals());
+      setDailyGoal(getDailyGoal());
+      setEnableNotifications(false);
+      toast.success('All local data reset. Please refresh the page.');
+    } catch (error) {
+      console.error('Reset error:', error);
+      toast.error('Failed to reset data');
     }
   };
 
@@ -154,14 +188,27 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="daily-goal">Daily Goal (problems)</Label>
+            <Input
+              id="daily-goal"
+              type="number"
+              min={1}
+              value={dailyGoal}
+              onChange={(e) => setDailyGoal(Number(e.target.value))}
+            />
+          </div>
+          <div className="space-y-2">
             <Label>Data Management</Label>
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               <Button onClick={handleExport}>Export Data</Button>
               <Input type="file" accept=".json" onChange={handleImport} className="hidden" id="import-file" />
               <Button asChild>
                 <label htmlFor="import-file" className="cursor-pointer">
                   Import Data
                 </label>
+              </Button>
+              <Button variant="destructive" onClick={handleResetData}>
+                Reset Data
               </Button>
             </div>
           </div>

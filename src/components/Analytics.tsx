@@ -18,10 +18,25 @@ const Analytics = ({ problems }: AnalyticsProps) => {
   const algozenithProblems = problems.filter((p) => p.platform === 'algozenith');
   const csesProblems = problems.filter((p) => p.platform === 'cses');
 
+  const getDifficultyBucket = (problem: Problem): 'Easy' | 'Medium' | 'Hard' | null => {
+    if (problem.difficulty === 'Easy' || problem.difficulty === 'Medium' || problem.difficulty === 'Hard') {
+      return problem.difficulty;
+    }
+
+    const numericDifficulty = Number(problem.difficulty);
+    if (!Number.isNaN(numericDifficulty)) {
+      if (numericDifficulty < 1200) return 'Easy';
+      if (numericDifficulty < 1600) return 'Medium';
+      return 'Hard';
+    }
+
+    return null;
+  };
+
   const difficultyData = [
-    { name: 'Easy', value: leetcodeProblems.filter((p) => p.difficulty === 'Easy').length, color: 'hsl(var(--success))' },
-    { name: 'Medium', value: leetcodeProblems.filter((p) => p.difficulty === 'Medium').length, color: 'hsl(var(--warning))' },
-    { name: 'Hard', value: leetcodeProblems.filter((p) => p.difficulty === 'Hard').length, color: 'hsl(var(--destructive))' },
+    { name: 'Easy', value: problems.filter((p) => getDifficultyBucket(p) === 'Easy').length, color: 'hsl(var(--success))' },
+    { name: 'Medium', value: problems.filter((p) => getDifficultyBucket(p) === 'Medium').length, color: 'hsl(var(--warning))' },
+    { name: 'Hard', value: problems.filter((p) => getDifficultyBucket(p) === 'Hard').length, color: 'hsl(var(--destructive))' },
   ];
 
   const platformData = [
@@ -33,6 +48,15 @@ const Analytics = ({ problems }: AnalyticsProps) => {
   ];
 
   const totalSolved = problems.length;
+  const totalDifficultySolved = difficultyData.reduce((sum, entry) => sum + entry.value, 0);
+
+  const platformChartData = totalSolved > 0
+    ? platformData
+    : [{ name: 'No data', value: 1, color: '#e5e7eb' }];
+
+  const difficultyChartData = totalDifficultySolved > 0
+    ? difficultyData
+    : [{ name: 'No data', value: 1, color: '#e5e7eb' }];
 
   const getCodeforcesDifficulty = (rating: number) => {
     if (rating < 1200) return { name: 'Newbie', color: '#808080' }; // Grey
@@ -127,7 +151,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={platformData}
+                    data={platformChartData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -138,7 +162,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {platformData.map((entry, index) => (
+                    {platformChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -158,7 +182,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                       borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
                     }}
                   />
-                  <Legend />
+                  {totalSolved > 0 && <Legend />}
                 </PieChart>
               </ResponsiveContainer>
             </ClientOnly>
@@ -166,14 +190,14 @@ const Analytics = ({ problems }: AnalyticsProps) => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>LeetCode Difficulty Distribution</CardTitle>
+            <CardTitle>Difficulty Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ClientOnly>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={difficultyData}
+                    data={difficultyChartData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -184,7 +208,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {difficultyData.map((entry, index) => (
+                    {difficultyChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -196,7 +220,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                     fill={theme === 'dark' ? '#fff' : '#000'}
                     style={{ fontSize: '20px', fontWeight: 600 }}
                   >
-                    {totalSolved}
+                    {totalDifficultySolved}
                   </text>
                   <Tooltip
                     contentStyle={{
@@ -204,7 +228,7 @@ const Analytics = ({ problems }: AnalyticsProps) => {
                       borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
                     }}
                   />
-                  <Legend />
+                  {totalDifficultySolved > 0 && <Legend />}
                 </PieChart>
               </ResponsiveContainer>
             </ClientOnly>

@@ -2,12 +2,14 @@ import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookCopy, CalendarDays, Star, Trophy, Clock, Download } from 'lucide-react';
+import { BookCopy, CalendarDays, Star, Trophy, Clock, Flame, Target } from 'lucide-react';
 import { isToday, isPast } from 'date-fns';
 import type { ActiveDailyCodingChallengeQuestion } from '../types';
 import { format, isSameDay, subDays, eachDayOfInterval, differenceInDays, eachWeekOfInterval } from 'date-fns';
 import ImportProblems from './ImportProblems';
 import { useState } from 'react';
+import { Progress } from '@/components/ui/progress';
+import { getDailyGoal } from '@/utils/settingsStorage';
 
 
 interface DashboardProps {
@@ -31,6 +33,40 @@ const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: D
     p.nextReviewDate && 
     (isToday(new Date(p.nextReviewDate)) || isPast(new Date(p.nextReviewDate)))
   ).length;
+
+  const dailyGoal = 4;
+  const solvesToday = problems.filter(p => isToday(new Date(p.dateSolved))).length;
+  const dailyProgress = Math.min(100, Math.round((solvesToday / dailyGoal) * 100));
+  const remainingToday = Math.max(0, dailyGoal - solvesToday);
+  const streakAtRisk = solvesToday === 0;
+
+  const getXpForProblem = (problem: Problem) => {
+    if (problem.difficulty === 'Easy') return 10;
+    if (problem.difficulty === 'Medium') return 20;
+    if (problem.difficulty === 'Hard') return 30;
+
+    const numericDifficulty = Number(problem.difficulty);
+    if (!Number.isNaN(numericDifficulty)) {
+      if (numericDifficulty < 1200) return 10;
+      if (numericDifficulty < 1600) return 20;
+      return 30;
+    }
+
+    return 15;
+  };
+
+  const totalXp = problems.reduce((sum, p) => sum + getXpForProblem(p), 0);
+  const level = Math.floor(totalXp / 100) + 1;
+  const xpIntoLevel = totalXp % 100;
+  const xpToNext = 100 - xpIntoLevel;
+
+  const getProgressColor = (value: number) => {
+    if (value <= 25) return 'bg-red-500';
+    if (value <= 50) return 'bg-yellow-500';
+    if (value <= 75) return 'bg-orange-500';
+    if (value >= 100) return 'bg-green-500';
+    return 'bg-purple-500';
+  };
 
   const getDifficultyBadgeVariant = (difficulty: string, platform: string): "default" | "destructive" | "secondary" | "outline" | "success" | "warning" => {
     if (platform === 'codeforces') return 'default';
@@ -157,6 +193,42 @@ const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: D
   return (
     <div className="space-y-8">
       
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Let’s go for 4 problems</CardTitle>
+            <Target className="h-6 w-6 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">{solvesToday} / 4</div>
+              <div className="text-sm text-muted-foreground">Solved Today</div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {remainingToday === 0 ? 'Today’s goal completed 🎉' : `${remainingToday} more to complete today’s task`}
+              </span>
+              {streakAtRisk && <Badge variant="destructive">Streak at risk</Badge>}
+            </div>
+            <Progress value={dailyProgress} indicatorClassName={getProgressColor(dailyProgress)} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">XP & Level</CardTitle>
+            <Flame className="h-6 w-6 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold">Level {level}</div>
+              <div className="text-sm text-muted-foreground">{totalXp} XP</div>
+            </div>
+            <div className="text-sm text-muted-foreground">{xpToNext} XP to next level</div>
+            <Progress value={xpIntoLevel} indicatorClassName={getProgressColor(xpIntoLevel)} />
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
