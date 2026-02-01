@@ -10,7 +10,6 @@ import { Toaster } from '@/components/ui/sonner';
 import { Settings as SettingsComponent } from './components/Settings';
 import { Badge } from '@/components/ui/badge';
 import { useProblems } from './hooks/useProblems';
-// import { useContests } from './hooks/useContests';
 import { useNotifications } from './hooks/useNotifications';
 import { useProblemForm } from './hooks/useProblemForm';
 
@@ -23,7 +22,6 @@ function App() {
     potdProblems,
     activeProblems,
     reviewProblems,
-    learnedProblems,
     reviewPotdProblems,
     dueReviewCount,
     addProblem,
@@ -143,7 +141,6 @@ function App() {
             <TabsContent value="review">
               <ProblemTabs
                 problems={[...reviewProblems, ...reviewPotdProblems]}
-                isPotdList={false}
                 isReviewList={true}
                 onUpdateProblem={updateProblem}
                 onDeleteProblem={deleteProblem}

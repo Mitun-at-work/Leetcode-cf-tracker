@@ -3,7 +3,6 @@ import ProblemList from './ProblemList';
 
 interface ProblemTabsProps {
   problems: Problem[];
-  isPotdList?: boolean;
   isReviewList?: boolean;
   onUpdateProblem: (id: string, updates: Partial<Problem>) => void;
   onDeleteProblem: (id: string) => void;

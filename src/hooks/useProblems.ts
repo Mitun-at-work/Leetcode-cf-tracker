@@ -259,9 +259,7 @@ export const useProblems = () => {
   // Computed values
   const activeProblems = problems.filter(p => p.status === 'active');
   const reviewProblems = activeProblems.filter(p => p.isReview && p.nextReviewDate);
-  const learnedProblems = problems.filter(p => p.status === 'learned');
-  const activePotdProblems = potdProblems.filter(p => p.status === 'active');
-  const reviewPotdProblems = activePotdProblems.filter(p => p.isReview && p.nextReviewDate);
+  const reviewPotdProblems = potdProblems.filter(p => p.isReview && p.nextReviewDate);
 
   const dueReviewCount = [...reviewProblems, ...reviewPotdProblems].filter(
     p => p.nextReviewDate && new Date(p.nextReviewDate) <= new Date()
@@ -274,8 +272,6 @@ export const useProblems = () => {
     isLoaded,
     activeProblems,
     reviewProblems,
-    learnedProblems,
-    activePotdProblems,
     reviewPotdProblems,
     dueReviewCount,
     addProblem,
