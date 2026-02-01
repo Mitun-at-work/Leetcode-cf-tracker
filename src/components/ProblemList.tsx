@@ -64,8 +64,7 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
     const searchTermLower = searchTerm.toLowerCase();
     const matchesTitle = problem.title.toLowerCase().includes(searchTermLower);
     const matchesTopics = problem.topics && problem.topics.some(topic => topic.toLowerCase().includes(searchTermLower));
-    const matchesCompanies = problem.companies && problem.companies.some(company => company.toLowerCase().includes(searchTermLower));
-    return matchesTitle || matchesTopics || matchesCompanies;
+    return matchesTitle || matchesTopics;
   });
 
   const isDueForReview = (problem: Problem) => {

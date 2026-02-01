@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookCopy, CalendarDays, Star, Trophy, Clock, Download } from 'lucide-react';
 import { isToday, isPast } from 'date-fns';
-import ProblemOfTheDay from './ProblemOfTheDay';
 import type { ActiveDailyCodingChallengeQuestion } from '../types';
 import { format, isSameDay, subDays, eachDayOfInterval, differenceInDays, eachWeekOfInterval } from 'date-fns';
 import ImportProblems from './ImportProblems';
@@ -157,31 +156,7 @@ const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: D
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-        <ProblemOfTheDay onAddPotd={onAddPotd} />
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Import Problems
-            </CardTitle>
-            <Download className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground mb-4">
-              Bulk import problems from company lists.
-            </div>
-            <Button onClick={() => setIsImporting(true)}>
-              Import Now
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
       
-      <ImportProblems 
-        open={isImporting} 
-        onOpenChange={setIsImporting} 
-        onImport={onImportProblems} 
-      />
 
       <Card>
         <CardHeader>
@@ -327,58 +302,6 @@ const Dashboard = ({ problems, onUpdateProblem, onAddPotd, onImportProblems }: D
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{problems.filter(p => p.difficulty === 'Easy').length}</div>
-            </CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Problems</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            {problems.slice(0, 5).map((problem) => (
-              <div key={problem.id} className="flex items-center justify-between p-3">
-                <div>
-                  <p className="font-medium">{problem.title}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={problem.platform === 'leetcode' ? 'outline' : 'default'}>
-                        {problem.platform === 'leetcode' ? 'LeetCode' : 'CodeForces'}
-                    </Badge>
-                    <Badge variant={getDifficultyBadgeVariant(problem.difficulty, problem.platform)}>
-                        {problem.difficulty}
-                    </Badge>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onUpdateProblem(problem.id, { isReview: !problem.isReview })}
-                  className={problem.isReview ? 'text-yellow-500' : 'text-muted-foreground'}
-                >
-                  <Star className="h-5 w-5" />
-                </Button>
-              </div>
-            ))}
-            {problems.length === 0 && (
-                <div className="text-center py-12">
-                    <BookCopy className="mx-auto h-16 w-16 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-medium">No problems yet</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                        Start tracking your coding progress by adding your first problem!
-                    </p>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-            <CardHeader>
-                <CardTitle>Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {/* Placeholder for activity chart or feed */}
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    Activity feed coming soon...
-                </div>
             </CardContent>
         </Card>
       </div>

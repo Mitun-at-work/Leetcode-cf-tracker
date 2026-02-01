@@ -2,7 +2,7 @@ import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
 import Analytics from './components/Analytics';
 import ProblemTabs from './components/ProblemTabs';
-import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Archive as LearnedIcon } from 'lucide-react';
+import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme, ThemeProvider } from '@/components/theme-provider';
@@ -109,10 +109,7 @@ function App() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="learned">
-                  <LearnedIcon className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Learned</span>
-                </TabsTrigger>
+               
                 <TabsTrigger value="analytics">
                   <BarChart3 className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Analytics</span>
@@ -159,15 +156,7 @@ function App() {
               />
             </TabsContent>
 
-            <TabsContent value="learned">
-              <ProblemTabs
-                problems={learnedProblems}
-                onUpdateProblem={updateProblem}
-                onDeleteProblem={deleteProblem}
-                onProblemReviewed={markProblemReviewed}
-                onEditProblem={openForm}
-              />
-            </TabsContent>
+           
 
             <TabsContent value="analytics">
               <Analytics problems={problems} />
