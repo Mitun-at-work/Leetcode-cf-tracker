@@ -35,6 +35,7 @@ const INITIAL_FORM_STATE: FormData = {
   repetition: 0,
   interval: 0,
   nextReviewDate: null,
+  companies: [],
 };
 
 
