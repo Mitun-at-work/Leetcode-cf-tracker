@@ -2,7 +2,7 @@ import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
 import Analytics from './components/Analytics';
 import ProblemTabs from './components/ProblemTabs';
-import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap } from 'lucide-react';
+import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +32,12 @@ function App() {
     deleteProblem,
     markProblemReviewed,
   } = useProblems();
+
+  // Filter problems in master sheet
+  const masterSheetProblems = useMemo(() => 
+    problems.filter(p => p.inMasterSheet),
+    [problems]
+  );
 
   const { isFormOpen, problemToEdit, openForm, setIsFormOpen } = useProblemForm();
 
@@ -210,6 +216,15 @@ function App() {
                   <List className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Problems</span>
                 </TabsTrigger>
+                <TabsTrigger value="mastersheet">
+                  <BookMarked className="h-5 w-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Master Sheet</span>
+                  {masterSheetProblems.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {masterSheetProblems.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="review">
                   <Star className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Review</span>
@@ -244,6 +259,16 @@ function App() {
               </div>
               <ProblemTabs
                 problems={activeProblems}
+                onUpdateProblem={updateProblem}
+                onDeleteProblem={deleteProblem}
+                onProblemReviewed={markProblemReviewed}
+                onEditProblem={openForm}
+              />
+            </TabsContent>
+
+            <TabsContent value="mastersheet">
+              <ProblemTabs
+                problems={masterSheetProblems}
                 onUpdateProblem={updateProblem}
                 onDeleteProblem={deleteProblem}
                 onProblemReviewed={markProblemReviewed}

@@ -1,17 +1,46 @@
+import { useState, useMemo, memo } from 'react';
 import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookCopy, CalendarDays, Star, Trophy, Clock, Flame, Target } from 'lucide-react';
+import { BookCopy, CalendarDays, Star, Clock, Flame, Target } from 'lucide-react';
 import { isToday, isPast } from 'date-fns';
-import { format, isSameDay, subDays, eachDayOfInterval, differenceInDays, eachWeekOfInterval } from 'date-fns';
+import { format, isSameDay, subDays, eachDayOfInterval, differenceInDays, eachWeekOfInterval, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 interface DashboardProps {
   problems: Problem[];
 }
 
-const Dashboard = ({ problems }: DashboardProps) => {
+const Dashboard = memo(({ problems }: DashboardProps) => {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+
+  const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+
+  // Get available years from problems
+  const availableYears = useMemo(() => {
+    const years = new Set(problems.map(p => new Date(p.dateSolved).getFullYear()));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [problems]);
+
+  const months = [
+    { value: 'all', label: 'All Year' },
+    { value: '0', label: 'January' },
+    { value: '1', label: 'February' },
+    { value: '2', label: 'March' },
+    { value: '3', label: 'April' },
+    { value: '4', label: 'May' },
+    { value: '5', label: 'June' },
+    { value: '6', label: 'July' },
+    { value: '7', label: 'August' },
+    { value: '8', label: 'September' },
+    { value: '9', label: 'October' },
+    { value: '10', label: 'November' },
+    { value: '11', label: 'December' },
+  ];
   const totalProblems = problems.length;
   const thisWeek = problems.filter((p) => {
     const weekAgo = new Date();
@@ -140,36 +169,47 @@ const Dashboard = ({ problems }: DashboardProps) => {
 
   const { currentStreak, longestStreak } = calculateStreaks(problems);
 
-  // For calendar: exactly 52 weeks (like LeetCode)
-  const today = new Date();
-  
-  // Start from exactly 52 weeks ago (364 days) from today
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - 364);
+  // For calendar: calculate date range based on selected year and month
+  const { startDate, endDate } = useMemo(() => {
+    const year = parseInt(selectedYear);
+    
+    if (selectedMonth === 'all') {
+      // Show entire year
+      return {
+        startDate: startOfYear(new Date(year, 0, 1)),
+        endDate: endOfYear(new Date(year, 11, 31))
+      };
+    } else {
+      // Show specific month
+      const month = parseInt(selectedMonth);
+      return {
+        startDate: startOfMonth(new Date(year, month, 1)),
+        endDate: endOfMonth(new Date(year, month, 1))
+      };
+    }
+  }, [selectedYear, selectedMonth]);
   
   // Find the Sunday of the week containing the start date
   const startSunday = new Date(startDate);
   const startDayOfWeek = startDate.getDay();
   startSunday.setDate(startDate.getDate() - startDayOfWeek);
   
-  // Find the Saturday of the week containing today
-  const endSaturday = new Date(today);
-  const todayDayOfWeek = today.getDay();
-  endSaturday.setDate(today.getDate() + (6 - todayDayOfWeek));
+  // Find the Saturday of the week containing the end date
+  const endSaturday = new Date(endDate);
+  const endDayOfWeek = endDate.getDay();
+  endSaturday.setDate(endDate.getDate() + (6 - endDayOfWeek));
   
-  // Generate solve counts for the actual data range (not the padded weeks)
-  const last365Days = eachDayOfInterval({ start: startDate, end: today });
-  const solveCounts = last365Days.reduce((acc, day) => {
+  // Generate solve counts for the selected date range
+  const daysInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  const solveCounts = daysInRange.reduce((acc, day) => {
     const count = problems.filter(p => isSameDay(new Date(p.dateSolved), day)).length;
     acc[format(day, 'yyyy-MM-dd')] = count;
     return acc;
   }, {} as Record<string, number>);
 
-  // Create exactly 52 weeks starting from the calculated Sunday
+  // Create weeks starting from the calculated Sunday
   const allWeeks = eachWeekOfInterval({ start: startSunday, end: endSaturday }, { weekStartsOn: 0 });
-  
-  // Ensure we have exactly 52-53 weeks max (GitHub shows 53 sometimes)
-  const weeks = allWeeks.slice(0, Math.min(53, allWeeks.length));
+  const weeks = allWeeks;
 
   // Calculate month labels with better alignment - FIXED
   const monthLabels: { label: string; weekIndex: number }[] = [];
@@ -194,7 +234,7 @@ const Dashboard = ({ problems }: DashboardProps) => {
       const dateStr = format(day, 'yyyy-MM-dd');
       
       // Check if this day is within our actual data range
-      const isInDataRange = day >= startDate && day <= today;
+      const isInDataRange = day >= startDate && day <= endDate;
       const count = isInDataRange ? (solveCounts[dateStr] || 0) : 0;
       
       return { date: day, count, isInDataRange };
@@ -210,10 +250,13 @@ const Dashboard = ({ problems }: DashboardProps) => {
     return 'bg-green-500 dark:bg-green-600';
   };
 
-  // Stats: use the actual data range, not the padded weeks
-  const pastYearSolves = problems.filter(p => new Date(p.dateSolved) >= startDate && new Date(p.dateSolved) <= today).length;
-  const activeDays = Object.values(solveCounts).filter(c => c > 0).length;
-  const totalDays = differenceInDays(today, startDate) + 1;
+  // Stats: use the actual data range
+  const pastYearSolves = problems.filter(p => {
+    const solveDate = new Date(p.dateSolved);
+    return solveDate >= startDate && solveDate <= endDate;
+  }).length;
+  const activeDays = (Object.values(solveCounts) as number[]).filter(c => c > 0).length;
+  const totalDays = differenceInDays(endDate, startDate) + 1;
   const activePercentage = Math.round((activeDays / totalDays) * 100);
 
 
@@ -259,7 +302,42 @@ const Dashboard = ({ problems }: DashboardProps) => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Solve Streaks</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Solve Streaks</CardTitle>
+            <div className="flex gap-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-24 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.length > 0 ? (
+                    availableYears.map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value={currentYear.toString()}>
+                      {currentYear}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-32 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map(month => (
+                    <SelectItem key={month.value} value={month.value}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-center mb-4">
@@ -308,8 +386,15 @@ const Dashboard = ({ problems }: DashboardProps) => {
               </div>
               
               {/* Calendar grid - Fill all gaps */}
-              <div className="flex-1">
-                <div className="grid gap-[1px] w-full" style={{ gridTemplateColumns: `repeat(${weeks.length}, 1fr)` }}>
+              <div className="flex-1 overflow-x-auto">
+                <div 
+                  className="grid gap-[1px]" 
+                  style={{ 
+                    gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))`,
+                    maxWidth: selectedMonth === 'all' ? '100%' : `${weeks.length * 16}px`,
+                    margin: selectedMonth === 'all' ? '0' : '0 auto'
+                  }}
+                >
                   {heatmapData.map((week, weekIdx) => (
                     <div key={weekIdx} className="flex flex-col gap-[1px]">
                       {week.map((cell, dayIdx) => {
@@ -324,6 +409,7 @@ const Dashboard = ({ problems }: DashboardProps) => {
                                 ? 'bg-gray-100 dark:bg-gray-800' 
                                 : getColor(cell.count)
                             } hover:ring-1 hover:ring-gray-400 transition-all cursor-default`}
+                            style={selectedMonth !== 'all' ? { width: '14px', height: '14px' } : {}}
                             title={
                               isOutOfRange 
                                 ? `${format(cell.date, 'MMM d, yyyy')}: Out of range`
@@ -352,7 +438,7 @@ const Dashboard = ({ problems }: DashboardProps) => {
             </div>
           </div>
           <div className="text-center space-y-1">
-            <div className="text-lg font-medium">{pastYearSolves} Submissions in the past year</div>
+            <div className="text-lg font-medium">{pastYearSolves} Submissions in {selectedMonth === 'all' ? selectedYear : months.find(m => m.value === selectedMonth)?.label + ' ' + selectedYear}</div>
             <div className="text-sm text-muted-foreground">Total Active Days: {activeDays} ({activePercentage}%)</div>
           </div>
         </CardContent>
@@ -394,18 +480,11 @@ const Dashboard = ({ problems }: DashboardProps) => {
                 <div className="text-2xl font-bold">{dueForReview}</div>
             </CardContent>
         </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Easy Problems</CardTitle>
-                <Trophy className="h-6 w-6 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{problems.filter(p => p.difficulty === 'Easy').length}</div>
-            </CardContent>
-        </Card>
       </div>
     </div>
   );
-};
+});
 
-export default Dashboard;
+Dashboard.displayName = 'Dashboard';
+
+export default memo(Dashboard);

@@ -16,6 +16,7 @@ export interface Problem {
   topics: string[];
   status: 'active' | 'learned';
   companies: string[];
+  inMasterSheet?: boolean;
 }
 
 export interface PlatformStats {

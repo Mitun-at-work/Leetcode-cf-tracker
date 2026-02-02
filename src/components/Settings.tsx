@@ -121,6 +121,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             status: p?.status || 'active',
             companies: Array.isArray(p?.companies) ? p.companies : [],
             topics: Array.isArray(p?.topics) ? p.topics : [],
+            inMasterSheet: typeof p?.inMasterSheet === 'boolean' ? p.inMasterSheet : false,
           });
 
           StorageService.saveProblems(problems.map(normalizeProblem));

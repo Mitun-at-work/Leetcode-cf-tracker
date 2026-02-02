@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Problem, ActiveDailyCodingChallengeQuestion } from '../types';
 import StorageService from '../utils/storage';
 import { toast } from 'sonner';
@@ -35,13 +35,23 @@ export const useProblems = () => {
     loadData();
   }, []);
 
-  // Auto-save when data changes
+  // Auto-save when data changes (with debouncing to reduce writes)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (isLoaded) {
-      StorageService.saveProblems(problems);
-      StorageService.savePotdProblems(potdProblems);
-      StorageService.saveCompanyProblems(companyProblems);
+    if (isLoaded && problems.length > 0) {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      
+      saveTimeoutRef.current = setTimeout(() => {
+        StorageService.saveProblems(problems);
+        StorageService.savePotdProblems(potdProblems);
+        StorageService.saveCompanyProblems(companyProblems);
+      }, 500); // Debounce saves to 500ms
     }
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
   }, [problems, potdProblems, companyProblems, isLoaded]);
 
   const addProblem = useCallback((problem: Omit<Problem, 'id' | 'createdAt'>) => {

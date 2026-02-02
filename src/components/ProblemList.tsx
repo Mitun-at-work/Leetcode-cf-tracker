@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import type { Problem } from '../types';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,8 +16,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Star, Trash2, ExternalLink, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { MoreHorizontal, Star, Trash2, ExternalLink, ChevronDown, ChevronRight, Pencil, Filter, X, BookMarked } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +36,7 @@ import { startOfDay } from 'date-fns';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { topics } from '@/lib/topics';
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
   leetcode: 'LeetCode',
@@ -40,14 +44,6 @@ const PLATFORM_LABELS: Record<Problem['platform'], string> = {
   atcoder: 'AtCoder',
   algozenith: 'AlgoZenith',
   cses: 'CSES',
-};
-
-const PLATFORM_LINKS: Record<Problem['platform'], string> = {
-  leetcode: 'https://leetcode.com',
-  codeforces: 'https://codeforces.com',
-  atcoder: 'https://atcoder.jp',
-  algozenith: 'https://algozenith.com',
-  cses: 'https://cses.fi',
 };
 
 interface ProblemListProps {
@@ -59,12 +55,17 @@ interface ProblemListProps {
   isReviewList?: boolean;
 }
 
-const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem, onProblemReviewed, isReviewList = false }: ProblemListProps) => {
+const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditProblem, onProblemReviewed, isReviewList = false }: ProblemListProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [problemToDelete, setProblemToDelete] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  
+  // Filter states
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Problem['platform']>>(new Set());
+  const [selectedDifficulties, setSelectedDifficulties] = useState<Set<string>>(new Set());
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
 
-  const toggleRowExpansion = (id: string) => {
+  const toggleRowExpansion = useCallback((id: string) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -74,14 +75,78 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const filteredProblems = problems.filter((problem) => {
-    const searchTermLower = searchTerm.toLowerCase();
-    const matchesTitle = problem.title.toLowerCase().includes(searchTermLower);
-    const matchesTopics = problem.topics && problem.topics.some(topic => topic.toLowerCase().includes(searchTermLower));
-    return matchesTitle || matchesTopics;
-  });
+  const togglePlatform = useCallback((platform: Problem['platform']) => {
+    setSelectedPlatforms(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(platform)) {
+        newSet.delete(platform);
+      } else {
+        newSet.add(platform);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const toggleDifficulty = useCallback((difficulty: string) => {
+    setSelectedDifficulties(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(difficulty)) {
+        newSet.delete(difficulty);
+      } else {
+        newSet.add(difficulty);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const toggleTopic = useCallback((topic: string) => {
+    setSelectedTopics(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(topic)) {
+        newSet.delete(topic);
+      } else {
+        newSet.add(topic);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setSelectedPlatforms(new Set());
+    setSelectedDifficulties(new Set());
+    setSelectedTopics(new Set());
+  }, []);
+
+  const hasActiveFilters = selectedPlatforms.size > 0 || selectedDifficulties.size > 0 || selectedTopics.size > 0;
+
+  // Get unique difficulties from all problems
+  const uniqueDifficulties = useMemo(() => 
+    Array.from(new Set(problems.map(p => p.difficulty))).sort(),
+    [problems]
+  );
+
+  const filteredProblems = useMemo(() => {
+    return problems.filter((problem) => {
+      const searchTermLower = searchTerm.toLowerCase();
+      const matchesTitle = problem.title.toLowerCase().includes(searchTermLower);
+      const matchesTopics = problem.topics && problem.topics.some(topic => topic.toLowerCase().includes(searchTermLower));
+      const matchesSearch = matchesTitle || matchesTopics;
+
+      // Platform filter
+      const matchesPlatform = selectedPlatforms.size === 0 || selectedPlatforms.has(problem.platform);
+
+      // Difficulty filter
+      const matchesDifficulty = selectedDifficulties.size === 0 || selectedDifficulties.has(problem.difficulty);
+
+      // Topic filter (at least one topic should match)
+      const matchesTopicFilter = selectedTopics.size === 0 || 
+        (problem.topics && problem.topics.some(topic => selectedTopics.has(topic)));
+
+      return matchesSearch && matchesPlatform && matchesDifficulty && matchesTopicFilter;
+    });
+  }, [problems, searchTerm, selectedPlatforms, selectedDifficulties, selectedTopics]);
 
   const isDueForReview = (problem: Problem) => {
     if (!problem.isReview || !problem.nextReviewDate) return false;
@@ -107,18 +172,153 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
     <Card>
         <CardHeader>
             <CardTitle>Problems</CardTitle> 
-            <div className="flex justify-between items-center pt-4">
-                <p className="text-sm text-muted-foreground">
-                    {filteredProblems.length} of {problems.length} problems
-                </p>
-                <div className="w-1/3">
-                    <Input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search problems..."
-                    />
+            <div className="flex flex-col gap-4 pt-4">
+                <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">
+                        {filteredProblems.length} of {problems.length} problems
+                    </p>
+                    <div className="w-1/3">
+                        <Input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search problems..."
+                        />
+                    </div>
                 </div>
+
+                {/* Filter Section */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  {/* Platform Filter */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Platform
+                        {selectedPlatforms.size > 0 && (
+                          <Badge variant="secondary" className="ml-2 rounded-full px-1 min-w-[1.25rem] h-5">
+                            {selectedPlatforms.size}
+                          </Badge>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      <DropdownMenuLabel>Filter by Platform</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {Object.entries(PLATFORM_LABELS).map(([key, label]) => (
+                        <DropdownMenuCheckboxItem
+                          key={key}
+                          checked={selectedPlatforms.has(key as Problem['platform'])}
+                          onCheckedChange={() => togglePlatform(key as Problem['platform'])}
+                        >
+                          {label}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Difficulty Filter */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Difficulty
+                        {selectedDifficulties.size > 0 && (
+                          <Badge variant="secondary" className="ml-2 rounded-full px-1 min-w-[1.25rem] h-5">
+                            {selectedDifficulties.size}
+                          </Badge>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {uniqueDifficulties.map(difficulty => (
+                        <DropdownMenuCheckboxItem
+                          key={difficulty}
+                          checked={selectedDifficulties.has(difficulty)}
+                          onCheckedChange={() => toggleDifficulty(difficulty)}
+                        >
+                          {difficulty}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Topic Filter */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Topics
+                        {selectedTopics.size > 0 && (
+                          <Badge variant="secondary" className="ml-2 rounded-full px-1 min-w-[1.25rem] h-5">
+                            {selectedTopics.size}
+                          </Badge>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 max-h-96 overflow-y-auto">
+                      <DropdownMenuLabel>Filter by Topic</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {topics.map(topic => (
+                        <DropdownMenuCheckboxItem
+                          key={topic}
+                          checked={selectedTopics.has(topic)}
+                          onCheckedChange={() => toggleTopic(topic)}
+                        >
+                          {topic}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Clear Filters Button */}
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                      onClick={clearAllFilters}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+
+                {/* Active Filter Tags */}
+                {hasActiveFilters && (
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(selectedPlatforms).map(platform => (
+                      <Badge key={platform} variant="secondary" className="gap-1">
+                        {PLATFORM_LABELS[platform]}
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => togglePlatform(platform)}
+                        />
+                      </Badge>
+                    ))}
+                    {Array.from(selectedDifficulties).map(difficulty => (
+                      <Badge key={difficulty} variant="secondary" className="gap-1">
+                        {difficulty}
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => toggleDifficulty(difficulty)}
+                        />
+                      </Badge>
+                    ))}
+                    {Array.from(selectedTopics).map(topic => (
+                      <Badge key={topic} variant="secondary" className="gap-1">
+                        {topic}
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => toggleTopic(topic)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
             </div>
         </CardHeader>
       <CardContent>
@@ -164,16 +364,9 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
 
                       </TableCell>
                       <TableCell>
-                        <a
-                          href={PLATFORM_LINKS[problem.platform]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex"
-                        >
-                          <Badge variant={problem.platform === 'leetcode' ? 'outline' : 'default'}>
-                            {PLATFORM_LABELS[problem.platform]}
-                          </Badge>
-                        </a>
+                        <Badge variant={problem.platform === 'leetcode' ? 'outline' : 'default'}>
+                          {PLATFORM_LABELS[problem.platform]}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={getDifficultyBadgeClass(problem.difficulty)}>
@@ -221,6 +414,11 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
                               <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { isReview: !problem.isReview })}>
                                 <Star className="mr-2 h-5 w-5" />
                                 {problem.isReview ? 'Unmark review' : 'Mark for review'}
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { inMasterSheet: !problem.inMasterSheet })}>
+                                <BookMarked className="mr-2 h-5 w-5" />
+                                {problem.inMasterSheet ? 'Remove from Master Sheet' : 'Add to Master Sheet'}
                               </DropdownMenuItem>
 
                               <DropdownMenuItem onClick={() => setProblemToDelete(problem.id)}>
@@ -284,6 +482,8 @@ const ProblemList = ({ problems, onUpdateProblem, onDeleteProblem, onEditProblem
       </AlertDialog>
     </Card>
   );
-};
+});
+
+ProblemList.displayName = 'ProblemList';
 
 export default ProblemList;
