@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MultiSelect, type Option } from '@/components/ui/multi-select';
 import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
-import { leetcodeTopics, codeforcesTopics } from '@/lib/topics';
+import { topics } from '@/lib/topics';
 import { toast } from 'sonner';
 
 interface ProblemFormProps {
@@ -54,9 +54,8 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
   }, [problemToEdit, open]);
 
   const topicOptions = useMemo<Option[]>(() => {
-    const topics = formData.platform === 'codeforces' ? codeforcesTopics : leetcodeTopics;
     return topics.map(topic => ({ label: topic, value: topic }));
-  }, [formData.platform]);
+  }, []);
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
