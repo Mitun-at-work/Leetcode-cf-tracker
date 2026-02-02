@@ -10,6 +10,24 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react')) return 'vendor-react';
+          if (id.includes('node_modules/@radix-ui')) return 'vendor-ui';
+          if (id.includes('node_modules/date-fns')) return 'vendor-date';
+          if (id.includes('node_modules/recharts')) return 'vendor-charts';
+          if (id.includes('node_modules')) return 'vendor-other';
+          if (id.includes('src/components/Analytics')) return 'analytics';
+          if (id.includes('src/components/Achievements')) return 'achievements';
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       // External API proxies (for development) - must come before general /api rule

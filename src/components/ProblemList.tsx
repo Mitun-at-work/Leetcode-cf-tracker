@@ -291,31 +291,46 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
                 {hasActiveFilters && (
                   <div className="flex flex-wrap gap-2">
                     {Array.from(selectedPlatforms).map(platform => (
-                      <Badge key={platform} variant="secondary" className="gap-1">
+                      <button
+                        key={platform}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          togglePlatform(platform);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer transition-colors"
+                      >
                         {PLATFORM_LABELS[platform]}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => togglePlatform(platform)}
-                        />
-                      </Badge>
+                        <X className="h-3 w-3" />
+                      </button>
                     ))}
                     {Array.from(selectedDifficulties).map(difficulty => (
-                      <Badge key={difficulty} variant="secondary" className="gap-1">
+                      <button
+                        key={difficulty}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleDifficulty(difficulty);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer transition-colors"
+                      >
                         {difficulty}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => toggleDifficulty(difficulty)}
-                        />
-                      </Badge>
+                        <X className="h-3 w-3" />
+                      </button>
                     ))}
                     {Array.from(selectedTopics).map(topic => (
-                      <Badge key={topic} variant="secondary" className="gap-1">
+                      <button
+                        key={topic}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleTopic(topic);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer transition-colors"
+                      >
                         {topic}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => toggleTopic(topic)}
-                        />
-                      </Badge>
+                        <X className="h-3 w-3" />
+                      </button>
                     ))}
                   </div>
                 )}

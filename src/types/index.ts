@@ -147,3 +147,36 @@ export interface ApiResponse<T = any> {
   message?: string;
   error?: string;
 }
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlockedAt: string | null;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  completionCount: number;
+}
+
+export interface AchievementDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  condition: (stats: AchievementStats) => boolean;
+}
+
+export interface AchievementStats {
+  totalProblems: number;
+  currentStreak: number;
+  longestStreak: number;
+  platformCounts: Record<string, number>;
+  difficultyCounts: Record<string, number>;
+  topicCounts: Record<string, number>;
+  mastersheetCount: number;
+  reviewCount: number;
+  learnedCount: number;
+  xp: number;
+  level: number;
+}

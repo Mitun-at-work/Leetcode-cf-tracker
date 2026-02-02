@@ -1,8 +1,8 @@
+import { lazy, Suspense, useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
-import Analytics from './components/Analytics';
 import ProblemTabs from './components/ProblemTabs';
-import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked } from 'lucide-react';
+import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,11 +13,31 @@ import { Badge } from '@/components/ui/badge';
 import { useProblems } from './hooks/useProblems';
 import { useNotifications } from './hooks/useNotifications';
 import { useProblemForm } from './hooks/useProblemForm';
+import { useAchievements } from './hooks/useAchievements';
+import { getRandomQuote } from './lib/communismQuotes';
 import type { Problem } from './types';
 import { useMemo } from 'react';
 
+// Lazy load heavy components
+const Analytics = lazy(() => import('./components/Analytics'));
+const AchievementsGrid = lazy(() => import('./components/Achievements').then(m => ({ default: m.AchievementsGrid })));
+
+// Loading fallback component
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
 function App() {
   const { theme, setTheme } = useTheme();
+  const [quoteKey, setQuoteKey] = useState(0);
+  const currentQuote = getRandomQuote();
+
+  // Update quote on component mount
+  useEffect(() => {
+    // Force a new quote on mount
+  }, []);
 
   // Custom hooks for state management
   const {
@@ -32,6 +52,9 @@ function App() {
     deleteProblem,
     markProblemReviewed,
   } = useProblems();
+
+  // Achievements hook
+  const { achievements, unlockedCount, getAchievementProgress } = useAchievements(problems);
 
   // Filter problems in master sheet
   const masterSheetProblems = useMemo(() => 
@@ -203,9 +226,9 @@ function App() {
 
         <main className="container py-8">
           <Tabs defaultValue="dashboard" className="p-4 sm:p-6 md:p-8">
-            <div className="flex items-center justify-between pb-4">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                LEETCODE + CF TRACKER
+            <div className="flex items-center justify-between pb-4 gap-4">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground italic max-w-2xl line-clamp-2" key={quoteKey}>
+                "{currentQuote}"
               </h1>
               <TabsList>
                 <TabsTrigger value="dashboard">
@@ -234,7 +257,15 @@ function App() {
                     </Badge>
                   )}
                 </TabsTrigger>
-               
+                <TabsTrigger value="achievements">
+                  <Trophy className="h-5 w-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Achievements</span>
+                  {achievements.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {unlockedCount}/{achievements.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="analytics">
                   <BarChart3 className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Analytics</span>
@@ -287,10 +318,19 @@ function App() {
               />
             </TabsContent>
 
-           
+            <TabsContent value="achievements">
+              <Suspense fallback={<ComponentLoader />}>
+                <AchievementsGrid 
+                  achievements={achievements}
+                  getProgress={getAchievementProgress}
+                />
+              </Suspense>
+            </TabsContent>
 
             <TabsContent value="analytics">
-              <Analytics problems={problems} />
+              <Suspense fallback={<ComponentLoader />}>
+                <Analytics problems={problems} />
+              </Suspense>
             </TabsContent>
           </Tabs>
         </main>

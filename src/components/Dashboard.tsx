@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,6 @@ interface DashboardProps {
 
 const Dashboard = memo(({ problems }: DashboardProps) => {
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -41,26 +40,26 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
     { value: '10', label: 'November' },
     { value: '11', label: 'December' },
   ];
-  const totalProblems = problems.length;
-  const thisWeek = problems.filter((p) => {
+  const totalProblems = useMemo(() => problems.length, [problems.length]);
+  const thisWeek = useMemo(() => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    return new Date(p.dateSolved) >= weekAgo;
-  }).length;
-  const forReview = problems.filter((p) => p.isReview).length;
-  const dueForReview = problems.filter(p => 
+    return problems.filter((p) => new Date(p.dateSolved) >= weekAgo).length;
+  }, [problems]);
+  const forReview = useMemo(() => problems.filter((p) => p.isReview).length, [problems]);
+  const dueForReview = useMemo(() => problems.filter(p => 
     p.isReview && 
     p.nextReviewDate && 
     (isToday(new Date(p.nextReviewDate)) || isPast(new Date(p.nextReviewDate)))
-  ).length;
+  ).length, [problems]);
 
   const dailyGoal = 4;
-  const solvesToday = problems.filter(p => isToday(new Date(p.dateSolved))).length;
-  const dailyProgress = Math.min(100, Math.round((solvesToday / dailyGoal) * 100));
-  const remainingToday = Math.max(0, dailyGoal - solvesToday);
-  const streakAtRisk = solvesToday === 0;
+  const solvesToday = useMemo(() => problems.filter(p => isToday(new Date(p.dateSolved))).length, [problems]);
+  const dailyProgress = useMemo(() => Math.min(100, Math.round((solvesToday / dailyGoal) * 100)), [solvesToday]);
+  const remainingToday = useMemo(() => Math.max(0, dailyGoal - solvesToday), [solvesToday]);
+  const streakAtRisk = useMemo(() => solvesToday === 0, [solvesToday]);
 
-  const getXpForProblem = (problem: Problem) => {
+  const getXpForProblem = useCallback((problem: Problem) => {
     if (problem.difficulty === 'Easy') return 10;
     if (problem.difficulty === 'Medium') return 20;
     if (problem.difficulty === 'Hard') return 30;
@@ -73,15 +72,15 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
     }
 
     return 15;
-  };
+  }, []);
 
-  const totalXp = problems.reduce((sum, p) => sum + getXpForProblem(p), 0);
-  const level = Math.floor(totalXp / 100) + 1;
-  const xpIntoLevel = totalXp % 100;
-  const xpToNext = 100 - xpIntoLevel;
+  const totalXp = useMemo(() => problems.reduce((sum, p) => sum + getXpForProblem(p), 0), [problems, getXpForProblem]);
+  const level = useMemo(() => Math.floor(totalXp / 100) + 1, [totalXp]);
+  const xpIntoLevel = useMemo(() => totalXp % 100, [totalXp]);
+  const xpToNext = useMemo(() => 100 - xpIntoLevel, [xpIntoLevel]);
 
 
-  const getLevelName = (xp: number) => {
+  const getLevelName = useCallback((xp: number) => {
     const tier = Math.floor(xp / 3000);
     switch (tier) {
       case 0:
@@ -103,10 +102,10 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
       default:
         return 'Legend';
     }
-  };
+  }, []);
 
   const currentLevelName = getLevelName(totalXp);
-  const getLevelColor = (xp: number) => {
+  const getLevelColor = useCallback((xp: number) => {
     const tier = Math.floor(xp / 3000);
     switch (tier) {
       case 0:
@@ -128,17 +127,17 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
       default:
         return 'text-red-500';
     }
-  };
+  }, []);
 
-  const getProgressColor = (value: number) => {
+  const getProgressColor = useCallback((value: number) => {
     if (value <= 25) return 'bg-red-500';
     if (value <= 50) return 'bg-yellow-500';
     if (value <= 75) return 'bg-orange-500';
     if (value >= 100) return 'bg-green-500';
     return 'bg-purple-500';
-  };
+  }, []);
 
-  const calculateStreaks = (problems: Problem[]) => {
+  const calculateStreaks = useCallback((problems: Problem[]) => {
     const today = new Date();
     const solveDates = problems.map(p => new Date(p.dateSolved).setHours(0,0,0,0)).sort((a,b) => a - b);
     
@@ -165,9 +164,9 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
     }
     
     return { currentStreak, longestStreak };
-  };
+  }, []);
 
-  const { currentStreak, longestStreak } = calculateStreaks(problems);
+  const { currentStreak, longestStreak } = useMemo(() => calculateStreaks(problems), [calculateStreaks, problems]);
 
   // For calendar: calculate date range based on selected year and month
   const { startDate, endDate } = useMemo(() => {
@@ -262,7 +261,6 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
 
   return (
     <div className="space-y-8">
-      
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
