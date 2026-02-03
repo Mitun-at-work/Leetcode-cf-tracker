@@ -73,7 +73,6 @@ const ImportProblems = ({ open, onOpenChange, onImport }: ImportProblemsProps) =
           }
         }
       } catch (error) {
-        console.error('Failed to fetch companies:', error);
         // Fallback to empty array - user can still manually type company name
       } finally {
         setLoadingCompanies(false);
@@ -140,7 +139,6 @@ const ImportProblems = ({ open, onOpenChange, onImport }: ImportProblemsProps) =
       onOpenChange(false);
 
     } catch (error: any) {
-      console.error('Import error:', error);
       toast.error(error.message || 'An unknown error occurred during import.');
     }
 

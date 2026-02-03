@@ -69,7 +69,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
 
   const handleSelectChange = (name: string, value: string | string[]) => {
     if (name === 'platform') {
-      setFormData(prev => ({ ...prev, platform: value as 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses', difficulty: '', topics: [] }));
+      setFormData(prev => ({ ...prev, platform: value as 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses' | 'hackerrank', difficulty: '', topics: [] }));
     } else if (name === 'topics') {
         setFormData(prev => ({ ...prev, topics: value as string[] }));
     } else {
@@ -123,6 +123,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
                 <SelectItem value="atcoder">AtCoder</SelectItem>
                 <SelectItem value="algozenith">AlgoZenith</SelectItem>
                 <SelectItem value="cses">CSES</SelectItem>
+                <SelectItem value="hackerrank">HackerRank</SelectItem>
               </SelectContent>
             </Select>
           </div>

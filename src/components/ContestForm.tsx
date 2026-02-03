@@ -85,6 +85,7 @@ export default function ContestForm({ open, onOpenChange, onAddContest, onUpdate
                   <SelectItem value="leetcode">LeetCode</SelectItem>
                   <SelectItem value="codeforces">Codeforces</SelectItem>
                   <SelectItem value="atcoder">AtCoder</SelectItem>
+                  <SelectItem value="hackerrank">HackerRank</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>

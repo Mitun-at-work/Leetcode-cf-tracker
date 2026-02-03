@@ -89,7 +89,6 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       URL.revokeObjectURL(url);
       toast.success('Data exported successfully!');
     } catch (error) {
-      console.error('Export error:', error);
       toast.error('Failed to export data');
     }
   };
@@ -159,7 +158,6 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       setEnableNotifications(false);
       toast.success('All local data reset. Please refresh the page.');
     } catch (error) {
-      console.error('Reset error:', error);
       toast.error('Failed to reset data');
     }
   };

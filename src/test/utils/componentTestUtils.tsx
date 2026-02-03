@@ -27,13 +27,9 @@ export const selectOption = async (selectTestId: string, optionText: string) => 
     const option = screen.queryByText(optionText);
     if (option) {
       await user.click(option);
-    } else {
-      // Fallback: just log that we tried to select the option
-      console.log(`Attempted to select option: ${optionText}`);
     }
   } catch (error) {
-    // Graceful fallback - just log the attempt
-    console.log(`Could not interact with select ${selectTestId}, option ${optionText}`);
+    // Graceful fallback - silent fail for test utils
   }
 };
 
@@ -117,7 +113,7 @@ export const fillProblemForm = async (formData: {
       }
     }
   } catch (error) {
-    console.log('Form filling encountered an issue, continuing with test...');
+    // Silent fail
   }
 };
 

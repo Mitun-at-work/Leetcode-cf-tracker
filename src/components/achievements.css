@@ -1,0 +1,13 @@
+.frozen-gif {
+  animation: none !important;
+  -webkit-animation: none !important;
+  -moz-animation: none !important;
+  image-rendering: crisp-edges;
+}
+
+.frozen-gif:hover {
+  animation: none !important;
+  -webkit-animation: none !important;
+  -moz-animation: none !important;
+}
+

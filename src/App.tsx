@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
 import ProblemTabs from './components/ProblemTabs';
@@ -16,7 +16,6 @@ import { useProblemForm } from './hooks/useProblemForm';
 import { useAchievements } from './hooks/useAchievements';
 import { getRandomQuote } from './lib/communismQuotes';
 import type { Problem } from './types';
-import { useMemo } from 'react';
 
 // Lazy load heavy components
 const Analytics = lazy(() => import('./components/Analytics'));

@@ -1,6 +1,6 @@
 export interface Problem {
   id: string;
-  platform: 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses';
+  platform: 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses' | 'hackerrank';
   title: string;
   problemId: string;
   difficulty: string;
@@ -25,6 +25,7 @@ export interface PlatformStats {
   atcoder: number;
   algozenith: number;
   cses: number;
+  hackerrank: number;
 }
 
 export interface DifficultyStats {
@@ -45,6 +46,11 @@ export interface DifficultyStats {
     hard: number;
   };
   cses: {
+    easy: number;
+    medium: number;
+    hard: number;
+  };
+  hackerrank: {
     easy: number;
     medium: number;
     hard: number;
@@ -104,7 +110,7 @@ export interface LeetCodeDailyProblemResponse {
 export interface Contest {
   id: string;
   name: string;
-  platform: 'leetcode' | 'codeforces' | 'atcoder' | 'codechef' | 'other';
+  platform: 'leetcode' | 'codeforces' | 'atcoder' | 'codechef' | 'hackerrank' | 'other';
   startTime: string;
   duration: number; // in minutes
   url: string;

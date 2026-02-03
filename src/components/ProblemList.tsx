@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import type { Problem } from '../types';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,7 +20,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Star, Trash2, ExternalLink, ChevronDown, ChevronRight, Pencil, Filter, X, BookMarked } from 'lucide-react';
+import { MoreHorizontal, Star, Trash2, ExternalLink, ChevronDown, ChevronRight, Pencil, Filter, X, BookMarked, ChevronLeft } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +44,7 @@ const PLATFORM_LABELS: Record<Problem['platform'], string> = {
   atcoder: 'AtCoder',
   algozenith: 'AlgoZenith',
   cses: 'CSES',
+  hackerrank: 'HackerRank',
 };
 
 interface ProblemListProps {
@@ -59,11 +60,14 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
   const [searchTerm, setSearchTerm] = useState('');
   const [problemToDelete, setProblemToDelete] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Filter states
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Problem['platform']>>(new Set());
   const [selectedDifficulties, setSelectedDifficulties] = useState<Set<string>>(new Set());
   const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   const toggleRowExpansion = useCallback((id: string) => {
     setExpandedRows(prev => {
@@ -117,9 +121,10 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
     setSelectedPlatforms(new Set());
     setSelectedDifficulties(new Set());
     setSelectedTopics(new Set());
+    setSelectedDate('');
   }, []);
 
-  const hasActiveFilters = selectedPlatforms.size > 0 || selectedDifficulties.size > 0 || selectedTopics.size > 0;
+  const hasActiveFilters = selectedPlatforms.size > 0 || selectedDifficulties.size > 0 || selectedTopics.size > 0 || selectedDate !== '';
 
   // Get unique difficulties from all problems
   const uniqueDifficulties = useMemo(() => 
@@ -129,33 +134,61 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
 
   const filteredProblems = useMemo(() => {
     return problems.filter((problem) => {
-      const searchTermLower = searchTerm.toLowerCase();
-      const matchesTitle = problem.title.toLowerCase().includes(searchTermLower);
-      const matchesTopics = problem.topics && problem.topics.some(topic => topic.toLowerCase().includes(searchTermLower));
-      const matchesSearch = matchesTitle || matchesTopics;
+      // Search filter
+      if (searchTerm) {
+        const searchTermLower = searchTerm.toLowerCase();
+        const matchesTitle = problem.title.toLowerCase().includes(searchTermLower);
+        const matchesTopics = problem.topics?.some(topic => topic.toLowerCase().includes(searchTermLower));
+        if (!matchesTitle && !matchesTopics) return false;
+      }
 
       // Platform filter
-      const matchesPlatform = selectedPlatforms.size === 0 || selectedPlatforms.has(problem.platform);
+      if (selectedPlatforms.size > 0 && !selectedPlatforms.has(problem.platform)) return false;
 
       // Difficulty filter
-      const matchesDifficulty = selectedDifficulties.size === 0 || selectedDifficulties.has(problem.difficulty);
+      if (selectedDifficulties.size > 0 && !selectedDifficulties.has(problem.difficulty)) return false;
 
       // Topic filter (at least one topic should match)
-      const matchesTopicFilter = selectedTopics.size === 0 || 
-        (problem.topics && problem.topics.some(topic => selectedTopics.has(topic)));
+      if (selectedTopics.size > 0 && (!problem.topics || !problem.topics.some(topic => selectedTopics.has(topic)))) return false;
 
-      return matchesSearch && matchesPlatform && matchesDifficulty && matchesTopicFilter;
+      // Date filter (exact match)
+      if (selectedDate) {
+        const problemDate = problem.dateSolved.split('T')[0];
+        if (problemDate !== selectedDate) return false;
+      }
+
+      return true;
     });
-  }, [problems, searchTerm, selectedPlatforms, selectedDifficulties, selectedTopics]);
+  }, [problems, searchTerm, selectedPlatforms, selectedDifficulties, selectedTopics, selectedDate]);
 
-  const isDueForReview = (problem: Problem) => {
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedPlatforms, selectedDifficulties, selectedTopics, selectedDate, itemsPerPage]);
+
+  // Pagination calculations
+  const { totalPages, startIndex, endIndex, paginatedProblems } = useMemo(() => {
+    const total = Math.ceil(filteredProblems.length / itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const paginated = filteredProblems.slice(start, end);
+    
+    return {
+      totalPages: total,
+      startIndex: start,
+      endIndex: end,
+      paginatedProblems: paginated
+    };
+  }, [filteredProblems, currentPage, itemsPerPage]);
+
+  const isDueForReview = useCallback((problem: Problem) => {
     if (!problem.isReview || !problem.nextReviewDate) return false;
     const reviewDate = startOfDay(new Date(problem.nextReviewDate));
     const today = startOfDay(new Date());
     return reviewDate <= today;
-  };
+  }, []);
 
-  const getDifficultyBadgeClass = (difficulty: string): string => {
+  const getDifficultyBadgeClass = useCallback((difficulty: string): string => {
     switch (difficulty) {
       case 'Easy':
         return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
@@ -166,7 +199,20 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
       default:
         return 'bg-foreground text-background border-foreground';
     }
-  };
+  }, []);
+
+  const handleItemsPerPageChange = useCallback((value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePreviousPage = useCallback(() => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  }, []);
+
+  const handleNextPage = useCallback(() => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
 
   return (
     <Card>
@@ -273,6 +319,15 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
                     </DropdownMenuContent>
                   </DropdownMenu>
 
+                  {/* Date Filter */}
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    placeholder="Filter by date"
+                    className="h-8 w-40"
+                  />
+
                   {/* Clear Filters Button */}
                   {hasActiveFilters && (
                     <Button
@@ -332,11 +387,93 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
                         <X className="h-3 w-3" />
                       </button>
                     ))}
+                    {selectedDate && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedDate('');
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer transition-colors"
+                      >
+                        Date: {selectedDate}
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 )}
             </div>
         </CardHeader>
       <CardContent>
+        {/* Pagination Controls */}
+        {filteredProblems.length > 0 && (
+          <div className="flex items-center justify-between px-2 py-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredProblems.length)} of {filteredProblems.length} problems
+              </span>
+              <div className="flex items-center gap-2 ml-4">
+                <span className="text-sm text-muted-foreground">Per page:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="h-8 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -350,8 +487,8 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProblems.length > 0 ? (
-                filteredProblems.flatMap((problem) => (
+              {paginatedProblems.length > 0 ? (
+                paginatedProblems.flatMap((problem) => (
                   <React.Fragment key={problem.id}>
                     <TableRow data-state={isDueForReview(problem) ? 'selected' : undefined}>
                       <TableCell className="font-medium">

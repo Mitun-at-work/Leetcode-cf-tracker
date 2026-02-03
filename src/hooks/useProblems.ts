@@ -25,7 +25,6 @@ export const useProblems = () => {
         setPotdProblems(potdData);
         setCompanyProblems(companyData);
       } catch (error) {
-        console.error('Error loading data:', error);
         toast.error('Failed to load data');
       } finally {
         setIsLoaded(true);
