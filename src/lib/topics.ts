@@ -7,6 +7,8 @@ export const topics = [
   "DFS",
   "BFS",
   "Binary Search",
+  "Prefix Sum",
+  "Partial Sum",
   "Tree",
   "Graph",
   "Matrix",

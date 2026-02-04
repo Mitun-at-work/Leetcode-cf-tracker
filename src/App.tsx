@@ -2,7 +2,9 @@ import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
 import ProblemTabs from './components/ProblemTabs';
-import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked, Trophy } from 'lucide-react';
+import ToSolveProblemList from './components/ToSolveProblemList';
+import MasterSheet from './components/MasterSheet';
+import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked, Trophy, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +16,6 @@ import { useProblems } from './hooks/useProblems';
 import { useNotifications } from './hooks/useNotifications';
 import { useProblemForm } from './hooks/useProblemForm';
 import { useAchievements } from './hooks/useAchievements';
-import { getRandomQuote } from './lib/communismQuotes';
 import type { Problem } from './types';
 
 // Lazy load heavy components
@@ -30,18 +31,13 @@ const ComponentLoader = () => (
 
 function App() {
   const { theme, setTheme } = useTheme();
-  const [quoteKey, setQuoteKey] = useState(0);
-  const currentQuote = getRandomQuote();
-
-  // Update quote on component mount
-  useEffect(() => {
-    // Force a new quote on mount
-  }, []);
 
   // Custom hooks for state management
   const {
     problems,
     potdProblems,
+    toSolveProblems,
+    sections,
     activeProblems,
     reviewProblems,
     reviewPotdProblems,
@@ -50,18 +46,27 @@ function App() {
     updateProblem,
     deleteProblem,
     markProblemReviewed,
+    addToSolveProblem,
+    updateToSolveProblem,
+    deleteToSolveProblem,
+    moveToSolveProblemToSolved,
+    addSection,
+    updateSection,
+    deleteSection,
+    reorderSections,
+    addProblemToSection,
+    removeProblemFromSection,
   } = useProblems();
 
   // Achievements hook
   const { achievements, unlockedCount, getAchievementProgress } = useAchievements(problems);
 
-  // Filter problems in master sheet
-  const masterSheetProblems = useMemo(() => 
-    problems.filter(p => p.inMasterSheet),
-    [problems]
+  const masterSheetProblemCount = useMemo(() => 
+    sections.reduce((total, section) => total + section.problemIds.length, 0),
+    [sections]
   );
 
-  const { isFormOpen, problemToEdit, openForm, setIsFormOpen } = useProblemForm();
+  const { isFormOpen, problemToEdit, formContext, openForm, setIsFormOpen } = useProblemForm();
 
   const getXpForProblem = (problem: Problem) => {
     if (problem.difficulty === 'Easy') return 10;
@@ -220,15 +225,15 @@ function App() {
           onOpenChange={setIsFormOpen}
           onAddProblem={addProblem}
           onUpdateProblem={updateProblem}
+          onAddToSolveProblem={addToSolveProblem}
+          onUpdateToSolveProblem={updateToSolveProblem}
           problemToEdit={problemToEdit}
+          formContext={formContext}
         />
 
         <main className="container py-8">
           <Tabs defaultValue="dashboard" className="p-4 sm:p-6 md:p-8">
             <div className="flex items-center justify-between pb-4 gap-4">
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground italic max-w-2xl line-clamp-2" key={quoteKey}>
-                "{currentQuote}"
-              </h1>
               <TabsList>
                 <TabsTrigger value="dashboard">
                   <Home className="h-5 w-5 sm:mr-2" />
@@ -241,9 +246,18 @@ function App() {
                 <TabsTrigger value="mastersheet">
                   <BookMarked className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Master Sheet</span>
-                  {masterSheetProblems.length > 0 && (
+                  {masterSheetProblemCount > 0 && (
                     <Badge variant="secondary" className="ml-2">
-                      {masterSheetProblems.length}
+                      {masterSheetProblemCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="tosolve">
+                  <Target className="h-5 w-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Pick to Solve</span>
+                  {toSolveProblems.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {toSolveProblems.length}
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -297,12 +311,32 @@ function App() {
             </TabsContent>
 
             <TabsContent value="mastersheet">
-              <ProblemTabs
-                problems={masterSheetProblems}
-                onUpdateProblem={updateProblem}
-                onDeleteProblem={deleteProblem}
-                onProblemReviewed={markProblemReviewed}
-                onEditProblem={openForm}
+              <MasterSheet
+                sections={sections}
+                problems={problems}
+                onAddSection={addSection}
+                onUpdateSection={updateSection}
+                onDeleteSection={deleteSection}
+                onReorderSections={reorderSections}
+                onAddProblemToSection={addProblemToSection}
+                onRemoveProblemFromSection={removeProblemFromSection}
+              />
+            </TabsContent>
+
+            <TabsContent value="tosolve">
+              <div className="flex justify-end pb-4">
+                <Button onClick={() => openForm(null, 'tosolve')}>
+                  <div className="flex items-center">
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span>Add Problem to Solve</span>
+                  </div>
+                </Button>
+              </div>
+              <ToSolveProblemList
+                problems={toSolveProblems}
+                onDeleteProblem={deleteToSolveProblem}
+                onMoveToSolved={moveToSolveProblemToSolved}
+                onEditProblem={(problem) => openForm(problem, 'tosolve')}
               />
             </TabsContent>
 

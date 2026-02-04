@@ -437,16 +437,16 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
                 Previous
               </Button>
               <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                {Array.from({ length: Math.min(4, totalPages) }, (_, i) => {
                   let pageNum;
-                  if (totalPages <= 5) {
+                  if (totalPages <= 4) {
                     pageNum = i + 1;
-                  } else if (currentPage <= 3) {
+                  } else if (currentPage <= 2) {
                     pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
+                  } else if (currentPage >= totalPages - 1) {
+                    pageNum = totalPages - 3 + i;
                   } else {
-                    pageNum = currentPage - 2 + i;
+                    pageNum = currentPage - 1 + i;
                   }
                   return (
                     <Button
@@ -507,10 +507,15 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
                           {problem.isReview && <Star className={`ml-2 h-5 w-5 ${isDueForReview(problem) ? 'text-blue-500' : 'text-yellow-500'}`} />}
                         </div>
                         {problem.topics && problem.topics.length > 0 && (
-                          <div className="mt-4 mb-4 flex flex-wrap gap-2">
-                            {problem.topics.map(topic => (
-                              <Badge key={topic} variant="outline" className="bg-black text-white border-black dark:bg-white dark:text-black dark:border-white">{topic}</Badge>
+                          <div className="mt-4 mb-4 flex flex-wrap gap-1">
+                            {problem.topics.slice(0, 2).map(topic => (
+                              <Badge key={topic} variant="secondary" className="text-xs">{topic}</Badge>
                             ))}
+                            {problem.topics.length > 2 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{problem.topics.length - 2}
+                              </Badge>
+                            )}
                           </div>
                         )}
 

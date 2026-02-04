@@ -17,6 +17,13 @@ export interface Problem {
   status: 'active' | 'learned';
   companies: string[];
   inMasterSheet?: boolean;
+  toSolve?: boolean;
+}
+
+export interface Section {
+  id: string;
+  name: string;
+  problemIds: string[];
 }
 
 export interface PlatformStats {

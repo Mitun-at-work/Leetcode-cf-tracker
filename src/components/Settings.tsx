@@ -76,9 +76,11 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       const data = {
         problems: await StorageService.getProblems(),
         potdProblems: await StorageService.getPotdProblems(),
+        companyProblems: await StorageService.getCompanyProblems(),
         contests: await StorageService.getContests(),
         reviewIntervals: getReviewIntervals(),
         dailyGoal: getDailyGoal(),
+        enableNotifications: localStorage.getItem('enableNotifications') === 'true',
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -98,14 +100,16 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const data = JSON.parse(event.target?.result as string);
           const problems = Array.isArray(data.problems) ? data.problems : [];
           const potdProblems = Array.isArray(data.potdProblems) ? data.potdProblems : [];
+          const companyProblems = Array.isArray(data.companyProblems) ? data.companyProblems : [];
           const contests = Array.isArray(data.contests) ? data.contests : [];
           const reviewIntervals = Array.isArray(data.reviewIntervals) ? data.reviewIntervals : getReviewIntervals();
           const dailyGoal = typeof data.dailyGoal === 'number' && data.dailyGoal > 0 ? data.dailyGoal : getDailyGoal();
+          const enableNotifications = typeof data.enableNotifications === 'boolean' ? data.enableNotifications : (localStorage.getItem('enableNotifications') === 'true');
 
           const normalizeProblem = (p: any) => ({
             ...p,
@@ -123,15 +127,21 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             inMasterSheet: typeof p?.inMasterSheet === 'boolean' ? p.inMasterSheet : false,
           });
 
-          StorageService.saveProblems(problems.map(normalizeProblem));
-          StorageService.savePotdProblems(potdProblems.map(normalizeProblem));
-          StorageService.saveContests(contests);
+          await StorageService.saveProblems(problems.map(normalizeProblem));
+          await StorageService.savePotdProblems(potdProblems.map(normalizeProblem));
+          await StorageService.saveCompanyProblems(companyProblems.map(normalizeProblem));
+          await StorageService.saveContests(contests);
           saveReviewIntervals(reviewIntervals);
           saveDailyGoal(dailyGoal);
           onSettingsSave(reviewIntervals);
+          localStorage.setItem('enableNotifications', enableNotifications.toString());
+          setEnableNotifications(enableNotifications);
+          setDailyGoal(dailyGoal);
           toast.success('Data imported successfully! Please refresh the page.');
         } catch (error) {
           toast.error('Invalid file format');
+        } finally {
+          e.target.value = '';
         }
       };
       reader.readAsText(file);

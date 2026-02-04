@@ -1,12 +1,12 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useTheme } from '@/components/theme-provider';
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, startOfYear, endOfYear } from 'date-fns';
 import ClientOnly from './client-only';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { BookCopy, CalendarDays, Star, Clock } from 'lucide-react';
 
 interface AnalyticsProps {
   problems: Problem[];
@@ -15,11 +15,10 @@ interface AnalyticsProps {
 const Analytics = memo(({ problems }: AnalyticsProps) => {
   const { theme } = useTheme();
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [selectedView, setSelectedView] = useState<'7days' | 'month' | 'year'>('7days');
+  const [timeFilter, setTimeFilter] = useState<'alltime' | 'year'>('alltime');
 
   // Get available years from problems
   const availableYears = useMemo(() => {
@@ -45,6 +44,10 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
 
   // Filter problems based on selected year and month
   const filteredProblems = useMemo(() => {
+        if (timeFilter === 'alltime') {
+          return problems;
+        }
+
     return problems.filter(p => {
       const problemDate = new Date(p.dateSolved);
       const problemYear = problemDate.getFullYear();
@@ -55,15 +58,9 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
 
       return true;
     });
-  }, [problems, selectedYear, selectedMonth]);
+  }, [problems, selectedYear, selectedMonth, timeFilter]);
 
-  const leetcodeProblems = filteredProblems.filter((p) => p.platform === 'leetcode');
-  const codeforcesProblems = filteredProblems.filter((p) => p.platform === 'codeforces');
-  const atcoderProblems = filteredProblems.filter((p) => p.platform === 'atcoder');
-  const algozenithProblems = filteredProblems.filter((p) => p.platform === 'algozenith');
-  const csesProblems = filteredProblems.filter((p) => p.platform === 'cses');
-
-  const getDifficultyBucket = (problem: Problem): 'Easy' | 'Medium' | 'Hard' | null => {
+  const getDifficultyBucket = useCallback((problem: Problem): 'Easy' | 'Medium' | 'Hard' | null => {
     if (problem.difficulty === 'Easy' || problem.difficulty === 'Medium' || problem.difficulty === 'Hard') {
       return problem.difficulty;
     }
@@ -76,23 +73,54 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
     }
 
     return null;
-  };
+  }, []);
+
+  const { platformCounts, difficultyCounts, totalSolved } = useMemo(() => {
+    const counts = {
+      platform: {
+        leetcode: 0,
+        codeforces: 0,
+        atcoder: 0,
+        algozenith: 0,
+        cses: 0,
+        hackerrank: 0,
+      },
+      difficulty: { Easy: 0, Medium: 0, Hard: 0 },
+    };
+
+    filteredProblems.forEach((problem) => {
+      if (problem.platform in counts.platform) {
+        counts.platform[problem.platform as keyof typeof counts.platform] += 1;
+      }
+
+      const bucket = getDifficultyBucket(problem);
+      if (bucket) {
+        counts.difficulty[bucket] += 1;
+      }
+    });
+
+    return {
+      platformCounts: counts.platform,
+      difficultyCounts: counts.difficulty,
+      totalSolved: filteredProblems.length,
+    };
+  }, [filteredProblems, getDifficultyBucket]);
 
   const difficultyData = [
-    { name: 'Easy', value: filteredProblems.filter((p) => getDifficultyBucket(p) === 'Easy').length, color: 'hsl(var(--success))' },
-    { name: 'Medium', value: filteredProblems.filter((p) => getDifficultyBucket(p) === 'Medium').length, color: 'hsl(var(--warning))' },
-    { name: 'Hard', value: filteredProblems.filter((p) => getDifficultyBucket(p) === 'Hard').length, color: 'hsl(var(--destructive))' },
+    { name: 'Easy', value: difficultyCounts.Easy, color: 'hsl(var(--success))' },
+    { name: 'Medium', value: difficultyCounts.Medium, color: 'hsl(var(--warning))' },
+    { name: 'Hard', value: difficultyCounts.Hard, color: 'hsl(var(--destructive))' },
   ];
 
   const platformData = [
-    { name: 'LeetCode', value: leetcodeProblems.length, color: '#2563eb' }, // blue-600
-    { name: 'Codeforces', value: codeforcesProblems.length, color: '#f97316' }, // orange-500
-    { name: 'AtCoder', value: atcoderProblems.length, color: '#22c55e' }, // green-500
-    { name: 'AlgoZenith', value: algozenithProblems.length, color: '#a855f7' }, // purple-500
-    { name: 'CSES', value: csesProblems.length, color: '#ef4444' }, // red-500
+    { name: 'LeetCode', value: platformCounts.leetcode, color: '#2563eb' }, // blue-600
+    { name: 'Codeforces', value: platformCounts.codeforces, color: '#f97316' }, // orange-500
+    { name: 'AtCoder', value: platformCounts.atcoder, color: '#22c55e' }, // green-500
+    { name: 'AlgoZenith', value: platformCounts.algozenith, color: '#a855f7' }, // purple-500
+    { name: 'CSES', value: platformCounts.cses, color: '#ef4444' }, // red-500
+    { name: 'HackerRank', value: platformCounts.hackerrank, color: '#10b981' }, // emerald-500
   ];
 
-  const totalSolved = filteredProblems.length;
   const totalDifficultySolved = difficultyData.reduce((sum, entry) => sum + entry.value, 0);
 
   const platformChartData = totalSolved > 0
@@ -103,57 +131,21 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
     ? difficultyData
     : [{ name: 'No data', value: 1, color: '#e5e7eb' }];
 
-  // Submission data based on view
-  const submissionData = useMemo(() => {
-    if (selectedView === '7days') {
-      const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
-      return last7Days.map(date => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        return {
-          date: format(date, 'MMM d'),
-          count: problems.filter(p => format(new Date(p.dateSolved), 'yyyy-MM-dd') === dateStr).length,
-        };
-      });
-    } else if (selectedView === 'month') {
-      const year = parseInt(selectedYear);
-      const month = selectedMonth === 'all' ? new Date().getMonth() : parseInt(selectedMonth);
-      const start = startOfMonth(new Date(year, month));
-      const end = endOfMonth(new Date(year, month));
-      const days = eachDayOfInterval({ start, end });
-      
-      return days.map(date => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        return {
-          date: format(date, 'MMM d'),
-          count: filteredProblems.filter(p => format(new Date(p.dateSolved), 'yyyy-MM-dd') === dateStr).length,
-        };
-      });
-    } else {
-      // Year view - group by month
-      const year = parseInt(selectedYear);
-      return months.slice(1).map((month, index) => {
-        const monthProblems = filteredProblems.filter(p => {
-          const problemDate = new Date(p.dateSolved);
-          return problemDate.getFullYear() === year && problemDate.getMonth() === index;
-        });
-        return {
-          date: month.label.substring(0, 3),
-          count: monthProblems.length,
-        };
-      });
-    }
-  }, [selectedView, selectedYear, selectedMonth, problems, filteredProblems]);
-
-  const topicsData = Object.entries(
-    filteredProblems.reduce((acc, p) => {
-      if (p.topics && Array.isArray(p.topics)) {
-        p.topics.forEach(topic => {
-          acc[topic] = (acc[topic] || 0) + 1;
-        });
-      }
-      return acc;
-    }, {} as Record<string, number>)
-  ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 15);
+  const topicsData = useMemo(() => {
+    return Object.entries(
+      filteredProblems.reduce((acc, p) => {
+        if (p.topics && Array.isArray(p.topics)) {
+          p.topics.forEach(topic => {
+            acc[topic] = (acc[topic] || 0) + 1;
+          });
+        }
+        return acc;
+      }, {} as Record<string, number>)
+    )
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 15);
+  }, [filteredProblems]);
 
 
   return (
@@ -166,56 +158,59 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
         <CardContent>
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Year</label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <label className="text-sm font-medium">Time Range</label>
+              <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as 'alltime' | 'year')}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableYears.length > 0 ? (
-                    availableYears.map(year => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value={currentYear.toString()}>
-                      {currentYear}
-                    </SelectItem>
-                  )}
+                  <SelectItem value="alltime">All Time</SelectItem>
+                  <SelectItem value="year">By Year</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Month</label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map(month => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {timeFilter === 'year' && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Year</label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.length > 0 ? (
+                        availableYears.map(year => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value={currentYear.toString()}>
+                          {currentYear}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Timeline View</label>
-              <Select value={selectedView} onValueChange={(v) => setSelectedView(v as any)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7days">Last 7 Days</SelectItem>
-                  <SelectItem value="month">Monthly</SelectItem>
-                  <SelectItem value="year">Yearly</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Month</label>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map(month => (
+                        <SelectItem key={month.value} value={month.value}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
 
             <div className="flex flex-col gap-2 ml-auto">
               <label className="text-sm font-medium">Filtered Problems</label>
@@ -263,72 +258,43 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Problems by Topic (Top 15)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ClientOnly>
-              <ResponsiveContainer width="100%" height={500}>
-                <BarChart data={topicsData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" stroke={theme === 'dark' ? '#fff' : '#000'} />
-                  <YAxis type="category" dataKey="name" stroke={theme === 'dark' ? '#fff' : '#000'} width={120} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
-                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#d1d5db" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ClientOnly>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Problems by Topic (Top 15)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {topicsData.map((topic, index) => {
+              const percentage = totalSolved > 0 ? ((topic.value / totalSolved) * 100).toFixed(1) : '0';
+              
+              return (
+                <div 
+                  key={topic.name} 
+                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-xs font-semibold">
+                      #{index + 1}
+                    </Badge>
+                    <span className="text-sm font-medium">{topic.name}</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-lg font-bold text-primary">{topic.value}</span>
+                    <span className="text-xs text-muted-foreground">{percentage}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {topicsData.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              No topics data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>
-              {selectedView === '7days' && 'Submissions in the Last 7 Days'}
-              {selectedView === 'month' && `Submissions - ${months.find(m => m.value === selectedMonth)?.label || 'Current Month'}`}
-              {selectedView === 'year' && `Submissions by Month - ${selectedYear}`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ClientOnly>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={submissionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke={theme === 'dark' ? '#fff' : '#000'}
-                    angle={selectedView === 'month' ? -45 : 0}
-                    textAnchor={selectedView === 'month' ? 'end' : 'middle'}
-                    height={selectedView === 'month' ? 80 : 30}
-                  />
-                  <YAxis allowDecimals={false} stroke={theme === 'dark' ? '#fff' : '#000'} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
-                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="#8b5cf6" 
-                    strokeWidth={2}
-                    dot={{ fill: '#8b5cf6', r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ClientOnly>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Platform Distribution</CardTitle>
@@ -375,9 +341,7 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
             </ClientOnly>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Difficulty Distribution</CardTitle>
@@ -422,33 +386,6 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
                 </PieChart>
               </ResponsiveContainer>
             </ClientOnly>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Platform Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {platformData.filter(p => p.value > 0).map((platform) => (
-                <div key={platform.name} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{platform.name}</span>
-                    <span className="text-sm font-bold">{platform.value}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full"
-                      style={{
-                        width: `${totalSolved > 0 ? (platform.value / totalSolved) * 100 : 0}%`,
-                        backgroundColor: platform.color,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
 

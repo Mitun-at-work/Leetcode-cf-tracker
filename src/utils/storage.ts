@@ -1,9 +1,11 @@
-import type { Problem, Contest } from '../types';
+import type { Problem, Contest, Section } from '../types';
 import ApiService from '../services/api';
 
 const PROBLEMS_KEY = 'leetcode-cf-tracker-problems';
 const POTD_PROBLEMS_KEY = 'potd-problems';
 const COMPANY_PROBLEMS_KEY = 'company-problems';
+const TO_SOLVE_PROBLEMS_KEY = 'to-solve-problems';
+const SECTIONS_KEY = 'master-sheet-sections';
 const CONTESTS_KEY = 'contests';
 const OFFLINE_MODE_KEY = 'offline-mode';
 
@@ -66,6 +68,34 @@ class StorageService {
 
   static async savePotdProblems(problems: Problem[]): Promise<void> {
     localStorage.setItem(POTD_PROBLEMS_KEY, JSON.stringify(problems));
+  }
+
+  static async getToSolveProblems(): Promise<Problem[]> {
+    try {
+      const problems = localStorage.getItem(TO_SOLVE_PROBLEMS_KEY);
+      return problems ? JSON.parse(problems) : [];
+    } catch (error) {
+      console.error('Error parsing to-solve problems from storage:', error);
+      return [];
+    }
+  }
+
+  static async saveToSolveProblems(problems: Problem[]): Promise<void> {
+    localStorage.setItem(TO_SOLVE_PROBLEMS_KEY, JSON.stringify(problems));
+  }
+
+  static async getSections(): Promise<Section[]> {
+    try {
+      const sections = localStorage.getItem(SECTIONS_KEY);
+      return sections ? JSON.parse(sections) : [];
+    } catch (error) {
+      console.error('Error parsing sections from storage:', error);
+      return [];
+    }
+  }
+
+  static async saveSections(sections: Section[]): Promise<void> {
+    localStorage.setItem(SECTIONS_KEY, JSON.stringify(sections));
   }
 
   static async getContests(): Promise<Contest[]> {

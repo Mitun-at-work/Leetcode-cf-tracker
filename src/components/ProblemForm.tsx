@@ -16,7 +16,11 @@ interface ProblemFormProps {
   onOpenChange: (open: boolean) => void;
   onAddProblem: (problem: Omit<Problem, 'id' | 'createdAt'>) => void;
   onUpdateProblem: (id: string, updates: Partial<Problem>) => void;
+  onAddToSolveProblem?: (problem: Omit<Problem, 'id' | 'createdAt'>) => void;
+  onUpdateToSolveProblem?: (id: string, updates: Partial<Problem>) => void;
+  onAddToMasterSheet?: (problem: Omit<Problem, 'id' | 'createdAt'>) => void;
   problemToEdit: Problem | null;
+  formContext?: 'regular' | 'tosolve' | 'mastersheet';
 }
 
 type FormData = Omit<Problem, 'id' | 'createdAt' | 'problemId'>;
@@ -39,7 +43,7 @@ const INITIAL_FORM_STATE: FormData = {
 };
 
 
-const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, problemToEdit }: ProblemFormProps) => {
+const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddToSolveProblem, onUpdateToSolveProblem, onAddToMasterSheet, problemToEdit, formContext = 'regular' }: ProblemFormProps) => {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_STATE);
 
   useEffect(() => {
@@ -49,9 +53,14 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
         dateSolved: problemToEdit.dateSolved.split('T')[0],
       });
     } else {
-      setFormData(INITIAL_FORM_STATE);
+      // If it's a to-solve form, clear the dateSolved field
+      if (formContext === 'tosolve') {
+        setFormData({ ...INITIAL_FORM_STATE, dateSolved: '' });
+      } else {
+        setFormData(INITIAL_FORM_STATE);
+      }
     }
-  }, [problemToEdit, open]);
+  }, [problemToEdit, open, formContext]);
 
   const topicOptions = useMemo<Option[]>(() => {
     return topics.map(topic => ({ label: topic, value: topic }));
@@ -90,23 +99,36 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
     };
 
     if (problemToEdit) {
-      onUpdateProblem(problemToEdit.id, problemData);
-      toast.success('Problem updated successfully!');
+      if (formContext === 'tosolve' && onUpdateToSolveProblem) {
+        onUpdateToSolveProblem(problemToEdit.id, problemData);
+        toast.success('To-Solve problem updated successfully!');
+      } else {
+        onUpdateProblem(problemToEdit.id, problemData);
+        toast.success('Problem updated successfully!');
+      }
     } else {
-      onAddProblem(problemData);
-      toast.success('Problem added successfully!');
+      if (formContext === 'tosolve' && onAddToSolveProblem) {
+        onAddToSolveProblem(problemData);
+      } else if (formContext === 'mastersheet' && onAddToMasterSheet) {
+        onAddToMasterSheet(problemData);
+      } else {
+        onAddProblem(problemData);
+      }
     }
-    
     onOpenChange(false);
   };
 
   const isEditing = !!problemToEdit && !!problemToEdit.id;
+  const isToSolveForm = formContext === 'tosolve' && !isEditing;
+  const isMasterSheetForm = formContext === 'mastersheet' && !isEditing;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Problem' : 'Add New Problem'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? 'Edit Problem' : isToSolveForm ? 'Add Problem to Solve' : isMasterSheetForm ? 'Add Problem to Master Sheet' : 'Add New Problem'}
+          </DialogTitle>
           {/* DialogDescription removed as per new_code */}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
@@ -179,7 +201,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="dateSolved">Date Solved *</Label>
+            <Label htmlFor="dateSolved">Date Solved {!isToSolveForm && '*'}</Label>
             <Input
                 type="date"
                 id="dateSolved"
@@ -187,8 +209,14 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
                 value={formData.dateSolved}
                 onChange={handleInputChange}
                 max={new Date().toISOString().split('T')[0]}
+                disabled={isToSolveForm}
                 data-testid="date-input"
             />
+            {isToSolveForm && (
+              <p className="text-xs text-muted-foreground">
+                Date will be set when you move this to your solved list
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -227,7 +255,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, proble
               Cancel
             </Button>
             <Button type="submit">
-              {isEditing ? 'Update Problem' : 'Add Problem'}
+              {isEditing ? 'Update Problem' : isToSolveForm ? 'Add to Solve List' : isMasterSheetForm ? 'Add to Master Sheet' : 'Add Problem'}
             </Button>
           </div>
         </form>
