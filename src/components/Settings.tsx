@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { X, Plus } from 'lucide-react';
 import StorageService from '@/utils/storage';
 import { Switch } from '@/components/ui/switch';
+import type { ImportedProblemData } from '@/types';
 
 interface ImportedSectionData {
   id?: string;

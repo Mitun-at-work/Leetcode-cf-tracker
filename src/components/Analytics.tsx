@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback, memo } from 'react';
 import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useTheme } from '@/components/theme-provider';
 import ClientOnly from './client-only';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { format, isSameDay, eachDayOfInterval, eachWeekOfInterval, startOfYear, endOfYear } from 'date-fns';
 
 interface AnalyticsProps {
   problems: Problem[];
@@ -18,6 +19,9 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [timeFilter, setTimeFilter] = useState<'alltime' | 'year'>('alltime');
+
+  // Separate year state for weekly activity chart
+  const [weeklyActivityYear, setWeeklyActivityYear] = useState<string>(currentYear.toString());
 
   // Get available years from problems
   const availableYears = useMemo(() => {
@@ -146,6 +150,121 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
       .slice(0, 15);
   }, [filteredProblems]);
 
+  // Monthly activity data for bar chart
+  const monthlyActivityData = useMemo(() => {
+    if (problems.length === 0) return [];
+
+    // Always use the selected year for weekly activity (independent of main filters)
+    const startDate = startOfYear(new Date(parseInt(weeklyActivityYear)));
+    const endDate = endOfYear(new Date(parseInt(weeklyActivityYear)));
+
+    // Filter problems for the selected year only
+    const yearProblems = problems.filter(p => {
+      const problemYear = new Date(p.dateSolved).getFullYear();
+      return problemYear === parseInt(weeklyActivityYear);
+    });
+
+    // Group by month instead of week for better readability
+    const monthlyData: Record<string, number> = {};
+    
+    yearProblems.forEach(problem => {
+      const monthKey = format(new Date(problem.dateSolved), 'yyyy-MM');
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+    });
+
+    // Create monthly data points for the entire year
+    const months = [];
+    for (let month = 0; month < 12; month++) {
+      const date = new Date(parseInt(weeklyActivityYear), month, 1);
+      const monthKey = format(date, 'yyyy-MM');
+      months.push({
+        month: format(date, 'MMM'),
+        fullMonth: monthKey,
+        problems: monthlyData[monthKey] || 0
+      });
+    }
+
+    return months; // Remove the filter to show all weeks, even those with 0 activity
+  }, [problems, weeklyActivityYear]);
+
+  // Heatmap data processing
+  const heatmapData = useMemo(() => {
+    if (filteredProblems.length === 0) return null;
+
+    // Get date range based on time filter
+    const startDate = timeFilter === 'year' ? startOfYear(new Date(parseInt(selectedYear))) : new Date(Math.min(...filteredProblems.map(p => new Date(p.dateSolved).getTime())));
+    const endDate = timeFilter === 'year' ? endOfYear(new Date(parseInt(selectedYear))) : new Date(Math.max(...filteredProblems.map(p => new Date(p.dateSolved).getTime())));
+
+    // For "All Time" view, limit to maximum 52 weeks (1 year) of recent data to prevent performance issues
+    let adjustedStartDate = startDate;
+    if (timeFilter === 'alltime') {
+      const maxWeeks = 52; // 1 year
+      const totalWeeks = Math.ceil((endDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      if (totalWeeks > maxWeeks) {
+        // Show only the most recent year of data
+        adjustedStartDate = new Date(endDate.getTime() - (maxWeeks * 7 * 24 * 60 * 60 * 1000));
+      }
+    }
+
+    // Generate solve counts for the date range
+    const daysInRange = eachDayOfInterval({ start: adjustedStartDate, end: endDate });
+    const solveCounts = daysInRange.reduce((acc, day) => {
+      const count = filteredProblems.filter(p => isSameDay(new Date(p.dateSolved), day)).length;
+      acc[format(day, 'yyyy-MM-dd')] = count;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Create weeks starting from Sunday
+    const startSunday = new Date(adjustedStartDate);
+    startSunday.setDate(adjustedStartDate.getDate() - adjustedStartDate.getDay());
+    const endSaturday = new Date(endDate);
+    endSaturday.setDate(endDate.getDate() + (6 - endDate.getDay()));
+
+    const weeks = eachWeekOfInterval({ start: startSunday, end: endSaturday }, { weekStartsOn: 0 });
+
+    // Safety check: limit to maximum 104 weeks (2 years) to prevent performance issues
+    const maxWeeks = 104;
+    const limitedWeeks = weeks.length > maxWeeks ? weeks.slice(-maxWeeks) : weeks;
+
+    // Calculate month labels
+    const monthLabels: { label: string; weekIndex: number }[] = [];
+    let lastMonth = '';
+    limitedWeeks.forEach((weekStart, index) => {
+      const weekDate = new Date(weekStart);
+      weekDate.setDate(weekDate.getDate() + 3); // Use Wednesday for month calculation
+      const monthLabel = format(weekDate, 'MMM');
+
+      if (monthLabel !== lastMonth) {
+        monthLabels.push({ label: monthLabel, weekIndex: index });
+        lastMonth = monthLabel;
+      }
+    });
+
+    // Create heatmap data (7 rows for days, weeks as columns)
+    const heatmap: { date: Date; count: number; isInDataRange: boolean }[][] = limitedWeeks.map(weekStart => {
+      return Array.from({length: 7}, (_, i) => {
+        const day = new Date(weekStart);
+        day.setDate(day.getDate() + i);
+        const dateStr = format(day, 'yyyy-MM-dd');
+
+        const isInDataRange = day >= adjustedStartDate && day <= endDate;
+        const count = isInDataRange ? (solveCounts[dateStr] || 0) : 0;
+
+        return { date: day, count, isInDataRange };
+      });
+    });
+
+    return { heatmap, weeks: limitedWeeks, monthLabels, isLimited: weeks.length > maxWeeks };
+  }, [filteredProblems, selectedYear, timeFilter]);
+
+  // Heatmap color function
+  const getHeatmapColor = useCallback((count: number) => {
+    if (count === 0) return 'bg-gray-100 dark:bg-gray-800';
+    if (count === 1) return 'bg-green-200 dark:bg-green-900';
+    if (count === 2) return 'bg-green-300 dark:bg-green-800';
+    if (count === 3) return 'bg-green-400 dark:bg-green-700';
+    return 'bg-green-500 dark:bg-green-600';
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -293,10 +412,159 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
         </CardContent>
       </Card>
 
+      {/* Activity Heatmap */}
+      {heatmapData && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Activity Heatmap {timeFilter === 'year' ? `- ${selectedYear}` : '- All Time'}
+              {heatmapData.isLimited && <span className="text-sm font-normal text-muted-foreground"> (Recent Data)</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="w-full">
+              {/* Month labels */}
+              <div className="relative mb-6 ml-12 h-4">
+                {heatmapData.monthLabels.map((month, i) => (
+                  <div
+                    key={i}
+                    className="absolute text-xs text-muted-foreground font-medium"
+                    style={{
+                      left: `${(month.weekIndex / heatmapData.weeks.length) * 100}%`,
+                      top: '0px'
+                    }}
+                  >
+                    {month.label}
+                  </div>
+                ))}
+              </div>
+
+              {/* Heatmap grid */}
+              <div className="flex items-start">
+                {/* Day labels */}
+                <div className="flex flex-col justify-around text-xs text-muted-foreground mr-3 font-medium" style={{ height: '112px' }}>
+                  <span></span>
+                  <span>Mon</span>
+                  <span></span>
+                  <span>Wed</span>
+                  <span></span>
+                  <span>Fri</span>
+                  <span></span>
+                </div>
+
+                {/* Calendar grid */}
+                <div className="flex-1 overflow-x-auto">
+                  <div
+                    className="grid gap-[1px]"
+                    style={{
+                      gridTemplateColumns: `repeat(${heatmapData.weeks.length}, minmax(0, 1fr))`,
+                      maxWidth: '100%'
+                    }}
+                  >
+                    {heatmapData.heatmap.map((week, weekIdx) => (
+                      <div key={weekIdx} className="flex flex-col gap-[1px]">
+                        {week.map((cell, dayIdx) => {
+                          const isOutOfRange = !cell.isInDataRange;
+
+                          return (
+                            <div
+                              key={dayIdx}
+                              className={`aspect-square rounded-[2px] ${
+                                isOutOfRange
+                                  ? 'bg-gray-100 dark:bg-gray-800'
+                                  : getHeatmapColor(cell.count)
+                              } hover:ring-1 hover:ring-gray-400 transition-all cursor-default`}
+                              style={{ width: '14px', height: '14px' }}
+                              title={
+                                isOutOfRange
+                                  ? `${format(cell.date, 'MMM d, yyyy')}: Out of range`
+                                  : `${format(cell.date, 'MMM d, yyyy')}: ${cell.count} ${cell.count === 1 ? 'problem' : 'problems'}`
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+                <span>Less</span>
+                <div className="flex items-center gap-[1px]">
+                  <div className="w-[12px] h-[12px] rounded-[1px] bg-gray-100 dark:bg-gray-800" />
+                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-200 dark:bg-green-900" />
+                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-300 dark:bg-green-800" />
+                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-400 dark:bg-green-700" />
+                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-500 dark:bg-green-600" />
+                </div>
+                <span>More</span>
+              </div>
+
+              {heatmapData.isLimited && (
+                <div className="mt-2 text-xs text-muted-foreground text-center">
+                  Showing recent data only (max 2 years) for optimal performance
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Monthly Activity */}
+      {problems.some(p => new Date(p.dateSolved).getFullYear() === parseInt(weeklyActivityYear)) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Monthly Activity - {weeklyActivityYear}</CardTitle>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Year:</label>
+                <Select value={weeklyActivityYear} onValueChange={setWeeklyActivityYear}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.map(year => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ClientOnly>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyActivityData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
+                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
+                    }}
+                    labelFormatter={(label) => `${label} ${weeklyActivityYear}`}
+                    formatter={(value) => [`${value} problems`, 'Problems Solved']}
+                  />
+                  <Bar dataKey="problems" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ClientOnly>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle>Platform Distribution</CardTitle>
+            <CardTitle className="text-center">Platform Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ClientOnly>
@@ -343,7 +611,7 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Difficulty Distribution</CardTitle>
+            <CardTitle className="text-center">Difficulty Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ClientOnly>

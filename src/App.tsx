@@ -59,7 +59,7 @@ function App() {
   } = useProblems();
 
   // Achievements hook
-  const { achievements, unlockedCount, getAchievementProgress } = useAchievements(problems);
+  const { achievements, unlockedCount, getAchievementProgress, stats } = useAchievements(problems);
 
   const masterSheetProblemCount = useMemo(() => 
     sections.reduce((total, section) => total + section.problemIds.length, 0) + 
@@ -173,7 +173,7 @@ function App() {
               <div className="ml-auto flex items-center space-x-4">
                 <div className="flex items-center space-x-2 text-red-500">
                   <Zap className="h-5 w-5" />
-                  <span className="text-sm font-semibold">{dailyGoalAchievedCount}</span>
+                  <span className="text-sm font-semibold">{stats?.currentStreak || 0}</span>
                 </div>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -249,38 +249,24 @@ function App() {
                 <TabsTrigger value="mastersheet">
                   <BookMarked className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Master Sheet</span>
-                  {masterSheetProblemCount > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {masterSheetProblemCount}
-                    </Badge>
-                  )}
                 </TabsTrigger>
                 <TabsTrigger value="tosolve">
                   <Target className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Pick to Solve</span>
                   {toSolveProblems.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {toSolveProblems.length}
-                    </Badge>
+                    <div className="ml-2 h-2 w-2 bg-red-500 rounded-full"></div>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="review">
                   <Star className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Review</span>
                   {dueReviewCount > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {dueReviewCount}
-                    </Badge>
+                    <div className="ml-2 h-2 w-2 bg-red-500 rounded-full"></div>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="achievements">
                   <Trophy className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Achievements</span>
-                  {achievements.length > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      {unlockedCount}/{achievements.length}
-                    </Badge>
-                  )}
                 </TabsTrigger>
                 <TabsTrigger value="analytics">
                   <BarChart3 className="h-5 w-5 sm:mr-2" />
@@ -291,7 +277,7 @@ function App() {
 
             <TabsContent value="dashboard">
               <Dashboard
-                problems={activeProblems}
+                problems={problems}
               />
             </TabsContent>
 

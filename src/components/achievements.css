@@ -11,3 +11,19 @@
   -moz-animation: none !important;
 }
 
+/* Achievement shine effect for unlocked achievements */
+.achievement-shine {
+  animation: achievement-shine 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.4));
+}
+
+@keyframes achievement-shine {
+  0%, 50% {
+    filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.4)) brightness(1);
+    transform: scale(1);
+  }
+  25%, 75% {
+    filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.6)) brightness(1.05);
+    transform: scale(1.01);
+  }
+}

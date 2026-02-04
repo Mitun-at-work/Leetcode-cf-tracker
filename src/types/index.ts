@@ -212,3 +212,24 @@ export interface AchievementStats {
   xp: number;
   level: number;
 }
+
+export interface ImportedProblemData {
+  title: string;
+  url: string;
+  difficulty: string;
+  tags?: string[];
+  source?: string;
+  id?: string;
+  createdAt?: string;
+  dateSolved?: string;
+  notes?: string;
+  isReview?: boolean;
+  repetition?: number;
+  interval?: number;
+  nextReviewDate?: string | null;
+  topics?: string[];
+  status?: 'active' | 'learned';
+  companies?: string[];
+  inMasterSheet?: boolean;
+  toSolve?: boolean;
+}

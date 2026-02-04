@@ -18,14 +18,15 @@ export function AchievementsGrid({ achievements, getProgress }: AchievementsGrid
   }, [achievements]);
 
   return (
-    <div className="space-y-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">Badges</h2>
-        <p className="text-sm text-muted-foreground">Earn badges by maintaining daily problem-solving streaks</p>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-2">Badges</h2>
+          <p className="text-sm text-muted-foreground">Earn badges by maintaining daily problem-solving streaks</p>
+        </div>
 
       {/* Achievements as LeetCode-style Badges */}
-      <div className="flex flex-wrap gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 justify-items-center">
         {allAchievements.map(achievement => {
           const isActive = !!achievement.unlockedAt;
           const totalTimes = achievement.totalCompletions;
@@ -39,7 +40,7 @@ export function AchievementsGrid({ achievements, getProgress }: AchievementsGrid
               {/* Badge Circle */}
               <div className={`relative w-28 h-28 rounded-full flex items-center justify-center border-4 transition-all ${
                 isActive
-                  ? 'border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-800/40 shadow-[0_8px_16px_rgba(249,115,22,0.3)] dark:shadow-[0_8px_16px_rgba(249,115,22,0.5)]'
+                  ? 'border-orange-500 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-800/40 shadow-[0_8px_16px_rgba(249,115,22,0.3)] dark:shadow-[0_8px_16px_rgba(249,115,22,0.5)] achievement-shine'
                   : totalTimes > 0
                   ? 'border-gray-400 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 shadow-md'
                   : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 shadow-sm'
@@ -102,5 +103,6 @@ export function AchievementsGrid({ achievements, getProgress }: AchievementsGrid
         })}
       </div>
     </div>
+  </div>
   );
 }

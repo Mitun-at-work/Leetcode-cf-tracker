@@ -394,39 +394,88 @@ const MasterSheet = ({
 
       {/* Problem Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Add Problem to Section</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Search and select problems to add to this section
+            </p>
           </DialogHeader>
           {currentSectionId && (
-            <Command className="rounded-lg border shadow-md">
-              <CommandInput placeholder="Search problems..." />
-              <CommandList className="max-h-[300px]">
-                <CommandEmpty>No problems found.</CommandEmpty>
-                <CommandGroup>
-                  {getAvailableProblems(currentSectionId).map((problem) => (
-                    <CommandItem
-                      key={problem.id}
-                      onSelect={() => handleAddProblem(currentSectionId, problem.id)}
-                      className="flex items-center justify-between p-3"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{problem.title}</span>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">{PLATFORM_LABELS[problem.platform]}</Badge>
-                            <Badge className={`text-xs ${getDifficultyColor(problem.difficulty)}`}>
-                              {problem.difficulty}
-                            </Badge>
+            <div className="space-y-4">
+              <Command className="rounded-lg border shadow-md">
+                <CommandInput placeholder="Search problems by title, platform, or difficulty..." />
+                <CommandList className="max-h-[400px]">
+                  <CommandEmpty className="py-6 text-center text-sm">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                      <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    No problems found matching your search.
+                  </CommandEmpty>
+                  <CommandGroup>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3">
+                      {getAvailableProblems(currentSectionId).map((problem) => (
+                        <div
+                          key={problem.id}
+                          className="relative p-4 border border-border rounded-lg hover:border-primary hover:bg-accent/30 cursor-pointer transition-all duration-200 group"
+                          onClick={() => handleAddProblem(currentSectionId, problem.id)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm leading-tight mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                                {problem.title}
+                              </h4>
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-xs px-2 py-0.5">
+                                  {PLATFORM_LABELS[problem.platform]}
+                                </Badge>
+                                <Badge className={`text-xs px-2 py-0.5 ${getDifficultyColor(problem.difficulty)}`}>
+                                  {problem.difficulty}
+                                </Badge>
+                              </div>
+                              {problem.topics && problem.topics.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {problem.topics.slice(0, 3).map((topic) => (
+                                    <span
+                                      key={topic}
+                                      className="inline-block px-2 py-0.5 text-xs bg-muted text-muted-foreground rounded"
+                                    >
+                                      {topic}
+                                    </span>
+                                  ))}
+                                  {problem.topics.length > 3 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      +{problem.topics.length - 3} more
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Check className="h-3 w-3 text-primary" />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>
+                              {new Date(problem.dateSolved).toLocaleDateString()}
+                            </span>
+                            {problem.status === 'learned' && (
+                              <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                                Learned
+                              </Badge>
+                            )}
                           </div>
                         </div>
-                      </div>
-                      <Check className="h-4 w-4 text-green-600" />
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+                      ))}
+                    </div>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </div>
           )}
         </DialogContent>
       </Dialog>

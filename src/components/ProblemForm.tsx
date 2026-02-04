@@ -78,7 +78,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddT
 
   const handleSelectChange = (name: string, value: string | string[]) => {
     if (name === 'platform') {
-      setFormData(prev => ({ ...prev, platform: value as 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses' | 'hackerrank', difficulty: '', topics: [] }));
+      setFormData(prev => ({ ...prev, platform: value as 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses' | 'hackerrank' }));
     } else if (name === 'topics') {
         setFormData(prev => ({ ...prev, topics: value as string[] }));
     } else {

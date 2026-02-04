@@ -654,20 +654,19 @@ const ProblemList = memo(({
 
       {/* Section Selection Dialog */}
       <Dialog open={!!problemToAddToSection} onOpenChange={() => setProblemToAddToSection(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add to Master Sheet</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground">
               Select a section to add "{problemToAddToSection?.title}" to:
             </p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+          </DialogHeader>
+          <div className="py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
               {sections.map((section) => (
-                <Button
+                <div
                   key={section.id}
-                  variant="outline"
-                  className="w-full justify-start"
+                  className="relative p-4 border border-border rounded-lg hover:border-primary hover:bg-accent/50 cursor-pointer transition-all duration-200 group"
                   onClick={() => {
                     if (problemToAddToSection && onAddProblemToSection) {
                       // Add problem to section
@@ -679,13 +678,35 @@ const ProblemList = memo(({
                     }
                   }}
                 >
-                  {section.name}
-                </Button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                        {section.name}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {section.problemIds.length} problem{section.problemIds.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
               {sections.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No sections available. Create a section in the Master Sheet tab first.
-                </p>
+                <div className="col-span-full text-center py-8">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                    <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">No sections available</p>
+                  <p className="text-xs text-muted-foreground">Create a section in the Master Sheet tab first.</p>
+                </div>
               )}
             </div>
           </div>
