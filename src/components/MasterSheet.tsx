@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Problem, Section } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,8 +29,12 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+interface ExtendedSection extends Section {
+  isAutomatic?: boolean;
+}
+
 interface SortableSectionProps {
-  section: Section;
+  section: ExtendedSection;
   problems: Problem[];
   onToggleExpansion: (sectionId: string) => void;
   onEditSection: () => void;
@@ -74,20 +78,22 @@ const SortableSection = ({
     <Card
       ref={setNodeRef}
       style={style}
-      className={`${isDragging ? 'opacity-50' : ''}`}
+      className={`${isDragging ? 'opacity-50' : ''} ${section.isAutomatic ? 'border-dashed' : ''}`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              {...attributes}
-              {...listeners}
-              className="cursor-grab h-6 w-6 p-0"
-            >
-              <GripVertical className="h-4 w-4" />
-            </Button>
+            {!section.isAutomatic && (
+              <Button
+                variant="ghost"
+                size="sm"
+                {...attributes}
+                {...listeners}
+                className="cursor-grab h-6 w-6 p-0"
+              >
+                <GripVertical className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -103,8 +109,8 @@ const SortableSection = ({
             {editingSection?.id === section.id ? (
               <div className="flex gap-2 flex-1">
                 <Input
-                  value={editingSection.name}
-                  onChange={(e) => setEditingSection({ ...editingSection, name: e.target.value })}
+                  value={editingSection!.name}
+                  onChange={(e) => setEditingSection(editingSection ? { ...editingSection, name: e.target.value } : null)}
                   onKeyPress={(e) => e.key === 'Enter' && onEditSection()}
                   className="flex-1 h-8"
                 />
@@ -112,8 +118,11 @@ const SortableSection = ({
                 <Button size="sm" variant="outline" onClick={() => setEditingSection(null)} className="h-8">Cancel</Button>
               </div>
             ) : (
-              <CardTitle className="text-lg cursor-pointer" onClick={() => onToggleExpansion(section.id)}>
+              <CardTitle className="text-lg cursor-pointer flex items-center gap-2" onClick={() => onToggleExpansion(section.id)}>
                 {section.name}
+                {section.isAutomatic && (
+                  <Badge variant="outline" className="text-xs">Auto</Badge>
+                )}
               </CardTitle>
             )}
           </div>
@@ -121,35 +130,39 @@ const SortableSection = ({
             <Badge variant="outline" className="text-xs px-2 py-1">
               {sectionProblems.length}
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAddProblem(section.id)}
-              className="h-8 w-8 p-0"
-              title="Add problem"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditingSection({ id: section.id, name: section.name })}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onDeleteSection(section.id)}
-                  className="text-red-600"
+            {!section.isAutomatic && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onAddProblem(section.id)}
+                  className="h-8 w-8 p-0"
+                  title="Add problem"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Section
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setEditingSection({ id: section.id, name: section.name })}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onDeleteSection(section.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Section
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -202,6 +215,7 @@ interface MasterSheetProps {
   onReorderSections: (sections: Section[]) => void;
   onAddProblemToSection: (sectionId: string, problemId: string) => void;
   onRemoveProblemFromSection: (sectionId: string, problemId: string) => void;
+  onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
 }
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
@@ -237,12 +251,45 @@ const MasterSheet = ({
   onReorderSections,
   onAddProblemToSection,
   onRemoveProblemFromSection,
+  onUpdateProblem,
 }: MasterSheetProps) => {
   const [newSectionName, setNewSectionName] = useState('');
   const [editingSection, setEditingSection] = useState<{ id: string; name: string } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  // Get problems that are in the master sheet
+  const masterSheetProblems = problems.filter(p => p.inMasterSheet);
+
+  // Create automatic topic-based sections for master sheet problems
+  const topicSections: ExtendedSection[] = useMemo(() => {
+    const topicMap = new Map<string, string[]>();
+    
+    masterSheetProblems.forEach(problem => {
+      if (problem.topics && Array.isArray(problem.topics)) {
+        problem.topics.forEach(topic => {
+          if (!topicMap.has(topic)) {
+            topicMap.set(topic, []);
+          }
+          topicMap.get(topic)!.push(problem.id);
+        });
+      }
+    });
+
+    return Array.from(topicMap.entries()).map(([topic, problemIds]) => ({
+      id: `topic-${topic}`,
+      name: topic,
+      problemIds,
+      isAutomatic: true,
+    }));
+  }, [masterSheetProblems]);
+
+  // Combine user-created sections with automatic topic sections
+  const allSections: ExtendedSection[] = useMemo(() => {
+    const userSections = sections.map(s => ({ ...s, isAutomatic: false }));
+    return [...userSections, ...topicSections];
+  }, [sections, topicSections]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -255,11 +302,15 @@ const MasterSheet = ({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = sections.findIndex((section) => section.id === active.id);
-      const newIndex = sections.findIndex((section) => section.id === over.id);
+      // Only allow reordering of user-created sections
+      const userSections = allSections.filter(s => !s.isAutomatic);
+      const oldIndex = userSections.findIndex((section) => section.id === active.id);
+      const newIndex = userSections.findIndex((section) => section.id === over.id);
 
-      const reorderedSections = arrayMove(sections, oldIndex, newIndex);
-      onReorderSections(reorderedSections);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedUserSections = arrayMove(userSections, oldIndex, newIndex);
+        onReorderSections(reorderedUserSections);
+      }
     }
   };
 
@@ -292,8 +343,16 @@ const MasterSheet = ({
   };
 
   const handleRemoveProblem = (sectionId: string, problemId: string) => {
-    onRemoveProblemFromSection(sectionId, problemId);
-    toast.success('Problem removed from section!');
+    if (sectionId.startsWith('topic-')) {
+      // For automatic topic sections, remove from master sheet
+      if (onUpdateProblem) {
+        onUpdateProblem(problemId, { inMasterSheet: false });
+        toast.success('Problem removed from master sheet!');
+      }
+    } else {
+      onRemoveProblemFromSection(sectionId, problemId);
+      toast.success('Problem removed from section!');
+    }
   };
 
   const toggleSectionExpansion = (sectionId: string) => {
@@ -355,9 +414,9 @@ const MasterSheet = ({
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={allSections.filter(s => !s.isAutomatic).map(s => s.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {sections.map((section) => {
+              {allSections.map((section) => {
                 const isExpanded = expandedSections.has(section.id);
                 
                 return (

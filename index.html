@@ -16,7 +16,9 @@
         originalError.apply(console, args);
       };
     </script>
-  </head>
+    <link rel="preload" href="/assets/vendor-react.js" as="script" crossorigin>
+    <link rel="preload" href="/assets/vendor-ui.js" as="script" crossorigin>
+    <link rel="modulepreload" href="/assets/index.js">
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

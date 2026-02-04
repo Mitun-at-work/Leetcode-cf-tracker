@@ -71,8 +71,8 @@ export const useProblems = () => {
   }, []);
 
   const updateProblem = useCallback((id: string, updates: Partial<Problem>) => {
-    setProblems(prev =>
-      prev.map(p => {
+    setProblems(prev => {
+      const newProblems = prev.map(p => {
         if (p.id !== id) return p;
 
         const updatedProblem = { ...p, ...updates };
@@ -93,8 +93,15 @@ export const useProblems = () => {
         }
 
         return updatedProblem;
-      })
-    );
+      });
+
+      // Save immediately if inMasterSheet is being updated
+      if (updates.inMasterSheet !== undefined) {
+        StorageService.saveProblems(newProblems);
+      }
+
+      return newProblems;
+    });
   }, []);
 
   const deleteProblem = useCallback((id: string) => {

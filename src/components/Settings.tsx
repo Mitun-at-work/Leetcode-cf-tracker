@@ -77,6 +77,8 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
         problems: await StorageService.getProblems(),
         potdProblems: await StorageService.getPotdProblems(),
         companyProblems: await StorageService.getCompanyProblems(),
+        toSolveProblems: await StorageService.getToSolveProblems(),
+        sections: await StorageService.getSections(),
         contests: await StorageService.getContests(),
         reviewIntervals: getReviewIntervals(),
         dailyGoal: getDailyGoal(),
@@ -106,6 +108,8 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
           const problems = Array.isArray(data.problems) ? data.problems : [];
           const potdProblems = Array.isArray(data.potdProblems) ? data.potdProblems : [];
           const companyProblems = Array.isArray(data.companyProblems) ? data.companyProblems : [];
+          const toSolveProblems = Array.isArray(data.toSolveProblems) ? data.toSolveProblems : [];
+          const sections = Array.isArray(data.sections) ? data.sections : [];
           const contests = Array.isArray(data.contests) ? data.contests : [];
           const reviewIntervals = Array.isArray(data.reviewIntervals) ? data.reviewIntervals : getReviewIntervals();
           const dailyGoal = typeof data.dailyGoal === 'number' && data.dailyGoal > 0 ? data.dailyGoal : getDailyGoal();
@@ -125,11 +129,14 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             companies: Array.isArray(p?.companies) ? p.companies : [],
             topics: Array.isArray(p?.topics) ? p.topics : [],
             inMasterSheet: typeof p?.inMasterSheet === 'boolean' ? p.inMasterSheet : false,
+            toSolve: typeof p?.toSolve === 'boolean' ? p.toSolve : false,
           });
 
           await StorageService.saveProblems(problems.map(normalizeProblem));
           await StorageService.savePotdProblems(potdProblems.map(normalizeProblem));
           await StorageService.saveCompanyProblems(companyProblems.map(normalizeProblem));
+          await StorageService.saveToSolveProblems(toSolveProblems.map(normalizeProblem));
+          await StorageService.saveSections(sections);
           await StorageService.saveContests(contests);
           saveReviewIntervals(reviewIntervals);
           saveDailyGoal(dailyGoal);

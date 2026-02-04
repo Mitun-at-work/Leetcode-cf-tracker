@@ -1,16 +1,12 @@
-import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
-import ProblemTabs from './components/ProblemTabs';
-import ToSolveProblemList from './components/ToSolveProblemList';
-import MasterSheet from './components/MasterSheet';
 import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked, Trophy, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme, ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { Settings as SettingsComponent } from './components/Settings';
 import { Badge } from '@/components/ui/badge';
 import { useProblems } from './hooks/useProblems';
 import { useNotifications } from './hooks/useNotifications';
@@ -21,6 +17,10 @@ import type { Problem } from './types';
 // Lazy load heavy components
 const Analytics = lazy(() => import('./components/Analytics'));
 const AchievementsGrid = lazy(() => import('./components/Achievements').then(m => ({ default: m.AchievementsGrid })));
+const ProblemTabs = lazy(() => import('./components/ProblemTabs'));
+const ToSolveProblemList = lazy(() => import('./components/ToSolveProblemList'));
+const MasterSheet = lazy(() => import('./components/MasterSheet'));
+const SettingsComponent = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 
 // Loading fallback component
 const ComponentLoader = () => (
@@ -62,13 +62,14 @@ function App() {
   const { achievements, unlockedCount, getAchievementProgress } = useAchievements(problems);
 
   const masterSheetProblemCount = useMemo(() => 
-    sections.reduce((total, section) => total + section.problemIds.length, 0),
-    [sections]
+    sections.reduce((total, section) => total + section.problemIds.length, 0) + 
+    problems.filter(p => p.inMasterSheet).length,
+    [sections, problems]
   );
 
   const { isFormOpen, problemToEdit, formContext, openForm, setIsFormOpen } = useProblemForm();
 
-  const getXpForProblem = (problem: Problem) => {
+  const getXpForProblem = useCallback((problem: Problem) => {
     if (problem.difficulty === 'Easy') return 10;
     if (problem.difficulty === 'Medium') return 20;
     if (problem.difficulty === 'Hard') return 30;
@@ -81,9 +82,9 @@ function App() {
     }
 
     return 15;
-  };
+  }, []);
 
-  const totalXp = problems.reduce((sum, p) => sum + getXpForProblem(p), 0);
+  const totalXp = useMemo(() => problems.reduce((sum, p) => sum + getXpForProblem(p), 0), [problems, getXpForProblem]);
   const dailyGoal = 4;
   const dailyGoalAchievedCount = useMemo(() => {
     const counts = problems.reduce<Record<string, number>>((acc, problem) => {
@@ -200,11 +201,13 @@ function App() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <SettingsComponent onSettingsSave={() => {}}>
-                  <Button variant="ghost" size="icon">
-                    <SettingsIcon className="h-6 w-6" />
-                  </Button>
-                </SettingsComponent>
+                <Suspense fallback={<ComponentLoader />}>
+                  <SettingsComponent onSettingsSave={() => {}}>
+                    <Button variant="ghost" size="icon">
+                      <SettingsIcon className="h-6 w-6" />
+                    </Button>
+                  </SettingsComponent>
+                </Suspense>
 
                 <Button
                   variant="ghost"
@@ -301,26 +304,31 @@ function App() {
                   </div>
                 </Button>
               </div>
-              <ProblemTabs
-                problems={activeProblems}
-                onUpdateProblem={updateProblem}
-                onDeleteProblem={deleteProblem}
-                onProblemReviewed={markProblemReviewed}
-                onEditProblem={openForm}
-              />
+              <Suspense fallback={<ComponentLoader />}>
+                <ProblemTabs
+                  problems={activeProblems}
+                  onUpdateProblem={updateProblem}
+                  onDeleteProblem={deleteProblem}
+                  onProblemReviewed={markProblemReviewed}
+                  onEditProblem={openForm}
+                />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="mastersheet">
-              <MasterSheet
-                sections={sections}
-                problems={problems}
-                onAddSection={addSection}
-                onUpdateSection={updateSection}
-                onDeleteSection={deleteSection}
-                onReorderSections={reorderSections}
-                onAddProblemToSection={addProblemToSection}
-                onRemoveProblemFromSection={removeProblemFromSection}
-              />
+              <Suspense fallback={<ComponentLoader />}>
+                <MasterSheet
+                  sections={sections}
+                  problems={problems}
+                  onAddSection={addSection}
+                  onUpdateSection={updateSection}
+                  onDeleteSection={deleteSection}
+                  onReorderSections={reorderSections}
+                  onAddProblemToSection={addProblemToSection}
+                  onRemoveProblemFromSection={removeProblemFromSection}
+                  onUpdateProblem={updateProblem}
+                />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="tosolve">
@@ -332,12 +340,14 @@ function App() {
                   </div>
                 </Button>
               </div>
-              <ToSolveProblemList
-                problems={toSolveProblems}
-                onDeleteProblem={deleteToSolveProblem}
-                onMoveToSolved={moveToSolveProblemToSolved}
-                onEditProblem={(problem) => openForm(problem, 'tosolve')}
-              />
+              <Suspense fallback={<ComponentLoader />}>
+                <ToSolveProblemList
+                  problems={toSolveProblems}
+                  onDeleteProblem={deleteToSolveProblem}
+                  onMoveToSolved={moveToSolveProblemToSolved}
+                  onEditProblem={(problem) => openForm(problem, 'tosolve')}
+                />
+              </Suspense>
             </TabsContent>
 
             <TabsContent value="review">

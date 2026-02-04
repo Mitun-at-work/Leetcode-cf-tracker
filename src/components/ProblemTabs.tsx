@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import type { Problem } from '../types';
 import ProblemList from './ProblemList';
 import { Button } from './ui/button';
@@ -16,7 +16,7 @@ interface ProblemTabsProps {
   onEditProblem: (problem: Problem) => void;
 }
 
-const ProblemTabs = ({
+const ProblemTabs = memo(({
   problems,
   isReviewList = false,
   isMasterSheet = false,
@@ -28,7 +28,7 @@ const ProblemTabs = ({
   const [pickCount, setPickCount] = useState<number>(5);
   const [selectedProblems, setSelectedProblems] = useState<Problem[]>([]);
 
-  const handlePickRandom = () => {
+  const handlePickRandom = useCallback(() => {
     if (pickCount <= 0) {
       toast.error('Please enter a valid number');
       return;
@@ -44,12 +44,12 @@ const ProblemTabs = ({
     const picked = shuffled.slice(0, pickCount);
     setSelectedProblems(picked);
     toast.success(`Picked ${picked.length} random problems from master sheet`);
-  };
+  }, [pickCount, problems.length]);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedProblems([]);
     toast.info('Cleared selection');
-  };
+  }, []);
 
   const displayProblems = selectedProblems.length > 0 ? selectedProblems : problems;
 
@@ -97,6 +97,8 @@ const ProblemTabs = ({
       />
     </div>
   );
-};
+});
+
+ProblemTabs.displayName = 'ProblemTabs';
 
 export default ProblemTabs;
