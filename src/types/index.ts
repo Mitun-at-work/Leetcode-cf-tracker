@@ -24,6 +24,7 @@ export interface Section {
   id: string;
   name: string;
   problemIds: string[];
+  isAutomatic?: boolean;
 }
 
 export interface PlatformStats {

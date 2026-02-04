@@ -73,10 +73,11 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
   // Function to export data
   const handleExport = async () => {
     try {
+      const problems = await StorageService.getProblems();
+      const cleanedProblems = problems.map(({ companies, ...rest }) => rest);
+      
       const data = {
-        problems: await StorageService.getProblems(),
-        potdProblems: await StorageService.getPotdProblems(),
-        companyProblems: await StorageService.getCompanyProblems(),
+        problems: cleanedProblems,
         toSolveProblems: await StorageService.getToSolveProblems(),
         sections: await StorageService.getSections(),
         contests: await StorageService.getContests(),

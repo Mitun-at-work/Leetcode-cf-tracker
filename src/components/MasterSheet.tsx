@@ -29,12 +29,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface ExtendedSection extends Section {
-  isAutomatic?: boolean;
-}
-
 interface SortableSectionProps {
-  section: ExtendedSection;
+  section: Section;
   problems: Problem[];
   onToggleExpansion: (sectionId: string) => void;
   onEditSection: () => void;
@@ -216,6 +212,7 @@ interface MasterSheetProps {
   onAddProblemToSection: (sectionId: string, problemId: string) => void;
   onRemoveProblemFromSection: (sectionId: string, problemId: string) => void;
   onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
+  onAutoGenerateSections: () => void;
 }
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
@@ -252,6 +249,7 @@ const MasterSheet = ({
   onAddProblemToSection,
   onRemoveProblemFromSection,
   onUpdateProblem,
+  onAutoGenerateSections,
 }: MasterSheetProps) => {
   const [newSectionName, setNewSectionName] = useState('');
   const [editingSection, setEditingSection] = useState<{ id: string; name: string } | null>(null);
@@ -263,7 +261,7 @@ const MasterSheet = ({
   const masterSheetProblems = problems.filter(p => p.inMasterSheet);
 
   // Create automatic topic-based sections for master sheet problems
-  const topicSections: ExtendedSection[] = useMemo(() => {
+  const topicSections: Section[] = useMemo(() => {
     const topicMap = new Map<string, string[]>();
     
     masterSheetProblems.forEach(problem => {
@@ -286,7 +284,7 @@ const MasterSheet = ({
   }, [masterSheetProblems]);
 
   // Combine user-created sections with automatic topic sections
-  const allSections: ExtendedSection[] = useMemo(() => {
+  const allSections: Section[] = useMemo(() => {
     const userSections = sections.map(s => ({ ...s, isAutomatic: false }));
     return [...userSections, ...topicSections];
   }, [sections, topicSections]);
@@ -396,6 +394,12 @@ const MasterSheet = ({
             <Button onClick={handleAddSection}>
               <Plus className="h-4 w-4 mr-2" />
               Add Section
+            </Button>
+            <Button variant="outline" onClick={() => {
+              onAutoGenerateSections();
+              toast.success('Sections auto-generated from problem topics!');
+            }}>
+              Auto Generate Sections
             </Button>
           </div>
         </CardContent>

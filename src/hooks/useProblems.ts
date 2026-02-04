@@ -355,6 +355,30 @@ export const useProblems = () => {
     // Optionally remove from problems if not in any section, but for now keep it
   }, []);
 
+  const autoGenerateSections = useCallback(() => {
+    const topicMap = new Map<string, string[]>();
+    
+    // Collect all problems and their topics
+    [...problems, ...potdProblems, ...companyProblems, ...toSolveProblems].forEach(problem => {
+      problem.topics.forEach(topic => {
+        if (!topicMap.has(topic)) {
+          topicMap.set(topic, []);
+        }
+        topicMap.get(topic)!.push(problem.id);
+      });
+    });
+    
+    // Create sections from topics
+    const newSections: Section[] = Array.from(topicMap.entries()).map(([topic, problemIds]) => ({
+      id: crypto.randomUUID(),
+      name: topic,
+      problemIds,
+      isAutomatic: true,
+    }));
+    
+    setSections(newSections);
+  }, [problems, potdProblems, companyProblems, toSolveProblems]);
+
   // Computed values
   const activeProblems = problems.filter(p => p.status === 'active');
   const reviewProblems = activeProblems.filter(p => p.isReview && p.nextReviewDate);
@@ -396,5 +420,6 @@ export const useProblems = () => {
     reorderSections,
     addProblemToSection,
     removeProblemFromSection,
+    autoGenerateSections,
   };
 };

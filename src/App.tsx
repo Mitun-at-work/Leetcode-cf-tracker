@@ -56,6 +56,7 @@ function App() {
     reorderSections,
     addProblemToSection,
     removeProblemFromSection,
+    autoGenerateSections,
   } = useProblems();
 
   // Achievements hook
@@ -327,6 +328,7 @@ function App() {
                   onAddProblemToSection={addProblemToSection}
                   onRemoveProblemFromSection={removeProblemFromSection}
                   onUpdateProblem={updateProblem}
+                  onAutoGenerateSections={autoGenerateSections}
                 />
               </Suspense>
             </TabsContent>
