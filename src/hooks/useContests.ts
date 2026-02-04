@@ -13,7 +13,7 @@ export const useContests = () => {
       try {
         const contestsData = await StorageService.getContests();
         setContests(contestsData);
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to load contests');
       } finally {
         setIsLoaded(true);

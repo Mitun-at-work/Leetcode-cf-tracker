@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 
-const multiSelectVariants = cva(
+const _multiSelectVariants = cva(
   "m-1",
   {
     variants: {
@@ -41,7 +41,7 @@ export interface Option {
   value: string;
 }
 
-interface MultiSelectProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof multiSelectVariants> {
+interface MultiSelectProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof _multiSelectVariants> {
   options: Option[];
   onValueChange: (value: string[]) => void;
   value: string[];

@@ -349,7 +349,7 @@ class StorageService {
     }
   }
 
-  private static async syncProblemsToServer(problems: Problem[]): Promise<void> {
+  private static async syncProblemsToServer(_problems: Problem[]): Promise<void> {
     try {
       // This is called when saving problems locally - just log for now
       console.log('🔄 Syncing problems to server in background...');
@@ -363,7 +363,7 @@ class StorageService {
     }
   }
 
-  private static async syncContestsToServer(contests: Contest[]): Promise<void> {
+  private static async syncContestsToServer(_contests: Contest[]): Promise<void> {
     try {
       console.log('🔄 Syncing contests to server in background...');
 
@@ -382,7 +382,7 @@ class StorageService {
       console.log('🔄 Syncing problems with server...');
 
       // Get local problems
-      const localProblems = JSON.parse(localStorage.getItem(PROBLEMS_KEY) || '[]') as Problem[];
+      const _localProblems = JSON.parse(localStorage.getItem(PROBLEMS_KEY) || '[]') as Problem[];
 
       // Get server problems
       const serverProblems = await ApiService.getProblems();

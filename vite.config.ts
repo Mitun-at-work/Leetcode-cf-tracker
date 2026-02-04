@@ -40,9 +40,6 @@ export default defineConfig({
           // Icons
           if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
           
-          // Theme
-          if (id.includes('node_modules/next-themes')) return 'vendor-theme';
-          
           // Form handling
           if (id.includes('node_modules/react-hook-form')) return 'vendor-forms';
           

@@ -18,6 +18,15 @@ import { X, Plus } from 'lucide-react';
 import StorageService from '@/utils/storage';
 import { Switch } from '@/components/ui/switch';
 
+interface ImportedProblemData {
+  id?: string;
+  createdAt?: string;
+  dateSolved?: string;
+  notes?: string;
+  isReview?: boolean;
+  [key: string]: unknown;
+}
+
 interface SettingsProps {
   children: React.ReactNode;
   onSettingsSave: (intervals: number[]) => void;
@@ -74,7 +83,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
   const handleExport = async () => {
     try {
       const problems = await StorageService.getProblems();
-      const cleanedProblems = problems.map(({ companies, ...rest }) => rest);
+      const cleanedProblems = problems.map(({ companies: _companies, ...rest }) => rest);
       
       const data = {
         problems: cleanedProblems,
@@ -93,7 +102,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Data exported successfully!');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to export data');
     }
   };
@@ -116,7 +125,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
           const dailyGoal = typeof data.dailyGoal === 'number' && data.dailyGoal > 0 ? data.dailyGoal : getDailyGoal();
           const enableNotifications = typeof data.enableNotifications === 'boolean' ? data.enableNotifications : (localStorage.getItem('enableNotifications') === 'true');
 
-          const normalizeProblem = (p: any) => ({
+          const normalizeProblem = (p: ImportedProblemData) => ({
             ...p,
             id: p?.id || crypto.randomUUID(),
             createdAt: p?.createdAt || new Date().toISOString(),
@@ -146,7 +155,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
           setEnableNotifications(enableNotifications);
           setDailyGoal(dailyGoal);
           toast.success('Data imported successfully! Please refresh the page.');
-        } catch (error) {
+        } catch (_error) {
           toast.error('Invalid file format');
         } finally {
           e.target.value = '';
@@ -175,7 +184,7 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       setDailyGoal(getDailyGoal());
       setEnableNotifications(false);
       toast.success('All local data reset. Please refresh the page.');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to reset data');
     }
   };

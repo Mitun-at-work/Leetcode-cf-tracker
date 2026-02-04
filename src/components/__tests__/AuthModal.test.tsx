@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../../../src/test/utils/testUtils';
+import { render, screen, waitFor } from '../../../src/test/utils/testUtils';
 import userEvent from '@testing-library/user-event';
 import AuthModal from '../AuthModal';
 import ApiService from '../../services/api';

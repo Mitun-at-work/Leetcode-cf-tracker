@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { render, RenderOptions, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
@@ -28,7 +28,7 @@ export const selectOption = async (selectTestId: string, optionText: string) => 
     if (option) {
       await user.click(option);
     }
-  } catch (error) {
+  } catch (_error) {
     // Graceful fallback - silent fail for test utils
   }
 };
@@ -112,7 +112,7 @@ export const fillProblemForm = async (formData: {
         await user.type(notesEditor, formData.notes);
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Silent fail
   }
 };

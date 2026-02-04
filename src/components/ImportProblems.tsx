@@ -13,44 +13,23 @@ import { Label } from '@/components/ui/label';
 import type { Problem } from '@/types';
 import { toast } from 'sonner';
 
+interface ImportedProblemData {
+  title: string;
+  url: string;
+  difficulty: string;
+  tags?: string[];
+  source?: string;
+}
+
+interface ImportError {
+  message: string;
+}
+
 interface ImportProblemsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onImport: (problems: Partial<Problem>[]) => void;
 }
-
-// A robust CSV parser that correctly handles quoted fields containing commas.
-const parseCSV = (csv: string): Record<string, string>[] => {
-  const lines = csv.trim().split('\n');
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const data = [];
-
-  // Find the indices of the headers we care about
-  const titleIndex = headers.indexOf('title');
-  const linkIndex = headers.indexOf('link');
-  const difficultyIndex = headers.indexOf('difficulty');
-
-  if (titleIndex === -1 || linkIndex === -1 || difficultyIndex === -1) {
-    toast.error("CSV file is missing required columns: title, link, difficulty.");
-    return [];
-  }
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-    if (values.length >= headers.length) {
-      const title = values[titleIndex]?.trim().replace(/"/g, '');
-      const url = values[linkIndex]?.trim().replace(/"/g, '');
-      const difficulty = values[difficultyIndex]?.trim().replace(/"/g, '');
-      
-      if (title && url && difficulty) {
-        data.push({ title, url, difficulty });
-      }
-    }
-  }
-  return data;
-};
 
 const ImportProblems = ({ open, onOpenChange, onImport }: ImportProblemsProps) => {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
@@ -72,7 +51,7 @@ const ImportProblems = ({ open, onOpenChange, onImport }: ImportProblemsProps) =
             setCompanies(result.data);
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Fallback to empty array - user can still manually type company name
       } finally {
         setLoadingCompanies(false);
@@ -109,7 +88,7 @@ const ImportProblems = ({ open, onOpenChange, onImport }: ImportProblemsProps) =
         return;
       }
 
-      const importedProblems: Partial<Problem>[] = result.data.problems.map((problem: any) => {
+      const importedProblems: Partial<Problem>[] = result.data.problems.map((problem: ImportedProblemData) => {
         // Extract problem ID from URL (e.g., "two-sum" from "https://leetcode.com/problems/two-sum")
         const urlParts = problem.url.split('/');
         const problemId = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2] || 'unknown';
@@ -138,8 +117,9 @@ const ImportProblems = ({ open, onOpenChange, onImport }: ImportProblemsProps) =
       onImport(importedProblems);
       onOpenChange(false);
 
-    } catch (error: any) {
-      toast.error(error.message || 'An unknown error occurred during import.');
+    } catch (error: unknown) {
+      const importError = error as ImportError;
+      toast.error(importError.message || 'An unknown error occurred during import.');
     }
 
     setIsImporting(false);

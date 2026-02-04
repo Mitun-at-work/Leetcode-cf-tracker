@@ -1,5 +1,6 @@
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
+import type { LoginRequest, RegisterRequest, CreateProblemRequest, UpdateProblemRequest, BulkCreateProblemsRequest, CreateContestRequest, UpdateContestRequest } from '../../types';
 
 const API_BASE_URL = 'http://localhost:5001/api';
 
@@ -72,7 +73,7 @@ const mockContests = [
 export const handlers = [
   // Auth endpoints
   http.post(`${API_BASE_URL}/auth/register`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = await request.json() as RegisterRequest;
     return HttpResponse.json({
       success: true,
       data: {
@@ -84,7 +85,7 @@ export const handlers = [
   }),
 
   http.post(`${API_BASE_URL}/auth/login`, async ({ request }) => {
-    const body = await request.json() as any;
+    const body = await request.json() as LoginRequest;
     if (body.email === 'test@example.com' && body.password === 'password123') {
       return HttpResponse.json({
         success: true,
@@ -162,7 +163,7 @@ export const handlers = [
       }, { status: 401 });
     }
 
-    const body = await request.json() as any;
+    const body = await request.json() as CreateProblemRequest;
     const newProblem = {
       _id: 'problem-new',
       userId: 'user-123',
@@ -186,7 +187,7 @@ export const handlers = [
       }, { status: 401 });
     }
 
-    const body = await request.json() as any;
+    const body = await request.json() as UpdateProblemRequest;
     const problemId = params.id as string;
     const existingProblem = mockProblems.find(p => p._id === problemId);
 
@@ -240,7 +241,7 @@ export const handlers = [
       }, { status: 401 });
     }
 
-    const { problems } = await request.json() as any;
+    const { problems } = await request.json() as BulkCreateProblemsRequest;
     return HttpResponse.json({
       success: true,
       data: { created: problems.length, skipped: 0 },
@@ -273,7 +274,7 @@ export const handlers = [
       }, { status: 401 });
     }
 
-    const body = await request.json() as any;
+    const body = await request.json() as CreateContestRequest;
     const newContest = {
       _id: 'contest-new',
       userId: 'user-123',
@@ -298,7 +299,7 @@ export const handlers = [
       }, { status: 401 });
     }
 
-    const body = await request.json() as any;
+    const body = await request.json() as UpdateContestRequest;
     const contestId = params.id as string;
     const existingContest = mockContests.find(c => c._id === contestId);
 

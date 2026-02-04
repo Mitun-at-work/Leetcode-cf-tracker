@@ -146,6 +146,17 @@ export interface UserSettings {
   timezone: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  username: string;
+  password: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: {
@@ -155,7 +166,15 @@ export interface AuthResponse {
   };
 }
 
-export interface ApiResponse<T = any> {
+export type CreateProblemRequest = Omit<Problem, '_id' | 'userId' | 'createdAt'>;
+export type UpdateProblemRequest = Partial<Problem>;
+export type BulkCreateProblemsRequest = {
+  problems: Partial<Problem>[];
+};
+export type CreateContestRequest = Omit<Contest, '_id' | 'userId' | 'createdAt' | 'updatedAt'>;
+export type UpdateContestRequest = Partial<Contest>;
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;

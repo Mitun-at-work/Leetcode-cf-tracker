@@ -44,7 +44,7 @@ const ProblemTabs = memo(({
     const picked = shuffled.slice(0, pickCount);
     setSelectedProblems(picked);
     toast.success(`Picked ${picked.length} random problems from master sheet`);
-  }, [pickCount, problems.length]);
+  }, [pickCount, problems]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedProblems([]);

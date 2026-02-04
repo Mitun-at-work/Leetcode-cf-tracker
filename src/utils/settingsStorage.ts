@@ -4,7 +4,7 @@ const DAILY_GOAL_KEY = 'leetcode-cf-tracker-daily-goal';
 export const saveReviewIntervals = (intervals: number[]) => {
   try {
     localStorage.setItem(REVIEW_INTERVALS_KEY, JSON.stringify(intervals));
-  } catch (error) {
+  } catch (_error) {
     // Silent fail
   }
 };
@@ -18,7 +18,8 @@ export const getReviewIntervals = (): number[] => {
         return intervals;
       }
     }
-  } catch (error) {
+  } catch (_error) {
+    // Silent fail - use defaults
   }
   // Return default intervals if nothing is stored or if there's an error
   return [2, 5, 7];

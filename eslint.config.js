@@ -19,5 +19,22 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { 
+        'argsIgnorePattern': '^_',
+        'varsIgnorePattern': '^_',
+        'caughtErrorsIgnorePattern': '^_'
+      }],
+      'react-refresh/only-export-components': ['warn', {
+        'allowConstantExport': true,
+        'allowExportNames': ['badgeVariants', 'buttonVariants', 'useTheme']
+      }],
+    },
+  },
+  {
+    files: ['src/test/utils/testUtils.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

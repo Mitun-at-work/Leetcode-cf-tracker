@@ -190,7 +190,7 @@ describe('StorageService', () => {
       };
 
       const expectedResult = { ...problemData, id: 'api-problem-id', createdAt: '2024-01-01T00:00:00.000Z' };
-      vi.mocked(ApiService.createProblem).mockResolvedValue(expectedResult as any);
+      vi.mocked(ApiService.createProblem).mockResolvedValue(expectedResult as Problem);
 
       const result = await StorageService.addProblem(problemData);
 
@@ -201,7 +201,7 @@ describe('StorageService', () => {
     it('should update problem via API in online mode', async () => {
       const updates = { title: 'API Updated Title' };
       const expectedResult = { ...mockProblems[0], ...updates };
-      vi.mocked(ApiService.updateProblem).mockResolvedValue(expectedResult as any);
+      vi.mocked(ApiService.updateProblem).mockResolvedValue(expectedResult as Problem);
 
       const result = await StorageService.updateProblem('problem-1', updates);
 
@@ -225,7 +225,7 @@ describe('StorageService', () => {
     });
 
     it('should get contests from API in online mode', async () => {
-      vi.mocked(ApiService.getContests).mockResolvedValue(mockContests as any);
+      vi.mocked(ApiService.getContests).mockResolvedValue(mockContests as Contest[]);
 
       const contests = await StorageService.getContests();
 

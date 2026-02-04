@@ -186,7 +186,7 @@ export const useAchievements = (problems: Problem[]) => {
         setAchievements(syncedAchievements);
         localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(syncedAchievements));
       }
-    } catch (error) {
+    } catch (_error) {
       // Silent fail
     } finally {
       setIsLoaded(true);

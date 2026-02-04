@@ -365,10 +365,6 @@ const MasterSheet = ({
     });
   };
 
-  const getProblemsForSection = (section: Section) => {
-    return problems.filter(p => section.problemIds.includes(p.id));
-  };
-
   // Get available problems (solved problems not already in this section)
   const getAvailableProblems = (sectionId: string) => {
     const section = sections.find(s => s.id === sectionId);

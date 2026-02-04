@@ -77,7 +77,7 @@ export default function ContestForm({ open, onOpenChange, onAddContest, onUpdate
             </div>
             <div className="space-y-2">
               <Label htmlFor="platform">Platform</Label>
-              <Select onValueChange={(value) => setValue('platform', value as any)} value={platform}>
+              <Select onValueChange={(value) => setValue('platform', value as Contest['platform'])} value={platform}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select platform" />
                 </SelectTrigger>

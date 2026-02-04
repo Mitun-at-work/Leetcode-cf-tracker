@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Problem, ActiveDailyCodingChallengeQuestion, Section } from '../types';
 import StorageService from '../utils/storage';
 import { toast } from 'sonner';
@@ -30,7 +30,7 @@ export const useProblems = () => {
         setCompanyProblems(companyData);
         setToSolveProblems(toSolveData);
         setSections(sectionsData);
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to load data');
       } finally {
         setIsLoaded(true);

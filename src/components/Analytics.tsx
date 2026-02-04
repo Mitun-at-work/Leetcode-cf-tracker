@@ -6,7 +6,6 @@ import { useTheme } from '@/components/theme-provider';
 import ClientOnly from './client-only';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { BookCopy, CalendarDays, Star, Clock } from 'lucide-react';
 
 interface AnalyticsProps {
   problems: Problem[];

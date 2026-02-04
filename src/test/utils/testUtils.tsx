@@ -1,6 +1,5 @@
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { ThemeProvider } from '@/components/theme-provider';
 
 // Mock theme provider for tests
 const MockThemeProvider = ({ children }: { children: React.ReactNode }) => {

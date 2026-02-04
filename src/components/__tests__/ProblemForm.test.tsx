@@ -4,15 +4,8 @@ import userEvent from '@testing-library/user-event';
 import ProblemForm from '../ProblemForm';
 import { mockProblem } from '../../test/utils/testUtils';
 import {
-  renderWithProviders,
-  selectOption,
-  fillProblemForm,
-  submitForm,
-  createMockProblem
+  renderWithProviders
 } from '../../test/utils/componentTestUtils';
-
-// Import render for tests that haven't been updated yet
-import { render } from '@testing-library/react';
 
 describe('ProblemForm', () => {
   const mockOnAddProblem = vi.fn();
