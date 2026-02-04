@@ -18,13 +18,11 @@ import { X, Plus } from 'lucide-react';
 import StorageService from '@/utils/storage';
 import { Switch } from '@/components/ui/switch';
 
-interface ImportedProblemData {
+interface ImportedSectionData {
   id?: string;
-  createdAt?: string;
-  dateSolved?: string;
-  notes?: string;
-  isReview?: boolean;
-  [key: string]: unknown;
+  name?: string;
+  problemIds?: string[];
+  isAutomatic?: boolean; // For backward compatibility
 }
 
 interface SettingsProps {
@@ -85,10 +83,17 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       const problems = await StorageService.getProblems();
       const cleanedProblems = problems.map(({ companies: _companies, ...rest }) => rest);
       
+      const sections = await StorageService.getSections();
+      const cleanedSections = sections.map((section: ImportedSectionData) => ({
+        id: section.id,
+        name: section.name,
+        problemIds: section.problemIds,
+      }));
+      
       const data = {
         problems: cleanedProblems,
         toSolveProblems: await StorageService.getToSolveProblems(),
-        sections: await StorageService.getSections(),
+        sections: cleanedSections,
         contests: await StorageService.getContests(),
         reviewIntervals: getReviewIntervals(),
         dailyGoal: getDailyGoal(),
@@ -142,11 +147,17 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             toSolve: typeof p?.toSolve === 'boolean' ? p.toSolve : false,
           });
 
+          const normalizeSection = (s: ImportedSectionData) => ({
+            id: s?.id || crypto.randomUUID(),
+            name: s?.name || 'Unnamed Section',
+            problemIds: Array.isArray(s?.problemIds) ? s.problemIds : [],
+          });
+
           await StorageService.saveProblems(problems.map(normalizeProblem));
           await StorageService.savePotdProblems(potdProblems.map(normalizeProblem));
           await StorageService.saveCompanyProblems(companyProblems.map(normalizeProblem));
           await StorageService.saveToSolveProblems(toSolveProblems.map(normalizeProblem));
-          await StorageService.saveSections(sections);
+          await StorageService.saveSections(sections.map(normalizeSection));
           await StorageService.saveContests(contests);
           saveReviewIntervals(reviewIntervals);
           saveDailyGoal(dailyGoal);

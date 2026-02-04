@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { Problem, Section } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,22 +74,20 @@ const SortableSection = ({
     <Card
       ref={setNodeRef}
       style={style}
-      className={`${isDragging ? 'opacity-50' : ''} ${section.isAutomatic ? 'border-dashed' : ''}`}
+      className={isDragging ? 'opacity-50' : ''}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {!section.isAutomatic && (
-              <Button
-                variant="ghost"
-                size="sm"
-                {...attributes}
-                {...listeners}
-                className="cursor-grab h-6 w-6 p-0"
-              >
-                <GripVertical className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              {...attributes}
+              {...listeners}
+              className="cursor-grab h-6 w-6 p-0"
+            >
+              <GripVertical className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -116,9 +114,6 @@ const SortableSection = ({
             ) : (
               <CardTitle className="text-lg cursor-pointer flex items-center gap-2" onClick={() => onToggleExpansion(section.id)}>
                 {section.name}
-                {section.isAutomatic && (
-                  <Badge variant="outline" className="text-xs">Auto</Badge>
-                )}
               </CardTitle>
             )}
           </div>
@@ -126,18 +121,16 @@ const SortableSection = ({
             <Badge variant="outline" className="text-xs px-2 py-1">
               {sectionProblems.length}
             </Badge>
-            {!section.isAutomatic && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onAddProblem(section.id)}
-                  className="h-8 w-8 p-0"
-                  title="Add problem"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <DropdownMenu>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onAddProblem(section.id)}
+              className="h-8 w-8 p-0"
+              title="Add problem"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                       <MoreHorizontal className="h-4 w-4" />
@@ -157,8 +150,6 @@ const SortableSection = ({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -212,7 +203,6 @@ interface MasterSheetProps {
   onAddProblemToSection: (sectionId: string, problemId: string) => void;
   onRemoveProblemFromSection: (sectionId: string, problemId: string) => void;
   onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
-  onAutoGenerateSections: () => void;
 }
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
@@ -249,45 +239,12 @@ const MasterSheet = ({
   onAddProblemToSection,
   onRemoveProblemFromSection,
   onUpdateProblem,
-  onAutoGenerateSections,
 }: MasterSheetProps) => {
   const [newSectionName, setNewSectionName] = useState('');
   const [editingSection, setEditingSection] = useState<{ id: string; name: string } | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-
-  // Get problems that are in the master sheet
-  const masterSheetProblems = problems.filter(p => p.inMasterSheet);
-
-  // Create automatic topic-based sections for master sheet problems
-  const topicSections: Section[] = useMemo(() => {
-    const topicMap = new Map<string, string[]>();
-    
-    masterSheetProblems.forEach(problem => {
-      if (problem.topics && Array.isArray(problem.topics)) {
-        problem.topics.forEach(topic => {
-          if (!topicMap.has(topic)) {
-            topicMap.set(topic, []);
-          }
-          topicMap.get(topic)!.push(problem.id);
-        });
-      }
-    });
-
-    return Array.from(topicMap.entries()).map(([topic, problemIds]) => ({
-      id: `topic-${topic}`,
-      name: topic,
-      problemIds,
-      isAutomatic: true,
-    }));
-  }, [masterSheetProblems]);
-
-  // Combine user-created sections with automatic topic sections
-  const allSections: Section[] = useMemo(() => {
-    const userSections = sections.map(s => ({ ...s, isAutomatic: false }));
-    return [...userSections, ...topicSections];
-  }, [sections, topicSections]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -300,14 +257,12 @@ const MasterSheet = ({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      // Only allow reordering of user-created sections
-      const userSections = allSections.filter(s => !s.isAutomatic);
-      const oldIndex = userSections.findIndex((section) => section.id === active.id);
-      const newIndex = userSections.findIndex((section) => section.id === over.id);
+      const oldIndex = sections.findIndex((section) => section.id === active.id);
+      const newIndex = sections.findIndex((section) => section.id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        const reorderedUserSections = arrayMove(userSections, oldIndex, newIndex);
-        onReorderSections(reorderedUserSections);
+        const reorderedSections = arrayMove(sections, oldIndex, newIndex);
+        onReorderSections(reorderedSections);
       }
     }
   };
@@ -391,12 +346,6 @@ const MasterSheet = ({
               <Plus className="h-4 w-4 mr-2" />
               Add Section
             </Button>
-            <Button variant="outline" onClick={() => {
-              onAutoGenerateSections();
-              toast.success('Sections auto-generated from problem topics!');
-            }}>
-              Auto Generate Sections
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -414,9 +363,9 @@ const MasterSheet = ({
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={allSections.filter(s => !s.isAutomatic).map(s => s.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {allSections.map((section) => {
+              {sections.map((section) => {
                 const isExpanded = expandedSections.has(section.id);
                 
                 return (

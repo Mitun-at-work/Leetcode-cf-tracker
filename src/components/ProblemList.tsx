@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
-import type { Problem } from '../types';
+import type { Problem, Section } from '../types';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -31,12 +31,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { startOfDay } from 'date-fns';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { topics } from '@/lib/topics';
+import { toast } from 'sonner';
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
   leetcode: 'LeetCode',
@@ -54,14 +56,26 @@ interface ProblemListProps {
   onEditProblem: (problem: Problem) => void;
   onProblemReviewed: (id: string, currentInterval: number) => void;
   isReviewList?: boolean;
+  sections?: Section[];
+  onAddProblemToSection?: (sectionId: string, problemId: string) => void;
 }
 
-const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditProblem, onProblemReviewed, isReviewList = false }: ProblemListProps) => {
+const ProblemList = memo(({ 
+  problems, 
+  onUpdateProblem, 
+  onDeleteProblem, 
+  onEditProblem, 
+  onProblemReviewed, 
+  isReviewList = false,
+  sections = [],
+  onAddProblemToSection
+}: ProblemListProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [problemToDelete, setProblemToDelete] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [problemToAddToSection, setProblemToAddToSection] = useState<Problem | null>(null);
   
   // Filter states
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Problem['platform']>>(new Set());
@@ -573,7 +587,7 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
                                 {problem.isReview ? 'Unmark review' : 'Mark for review'}
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem onClick={() => onUpdateProblem(problem.id, { inMasterSheet: !problem.inMasterSheet })}>
+                              <DropdownMenuItem onClick={() => setProblemToAddToSection(problem)}>
                                 <BookMarked className="mr-2 h-5 w-5" />
                                 {problem.inMasterSheet ? 'Remove from Master Sheet' : 'Add to Master Sheet'}
                               </DropdownMenuItem>
@@ -637,6 +651,46 @@ const ProblemList = memo(({ problems, onUpdateProblem, onDeleteProblem, onEditPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Section Selection Dialog */}
+      <Dialog open={!!problemToAddToSection} onOpenChange={() => setProblemToAddToSection(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add to Master Sheet</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Select a section to add "{problemToAddToSection?.title}" to:
+            </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {sections.map((section) => (
+                <Button
+                  key={section.id}
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    if (problemToAddToSection && onAddProblemToSection) {
+                      // Add problem to section
+                      onAddProblemToSection(section.id, problemToAddToSection.id);
+                      // Mark problem as in master sheet
+                      onUpdateProblem(problemToAddToSection.id, { inMasterSheet: true });
+                      setProblemToAddToSection(null);
+                      toast.success(`Added to "${section.name}" section`);
+                    }
+                  }}
+                >
+                  {section.name}
+                </Button>
+              ))}
+              {sections.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No sections available. Create a section in the Master Sheet tab first.
+                </p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 });

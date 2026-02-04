@@ -162,20 +162,18 @@ const ToSolveProblemList = memo(({
     toast.success('Problem removed from to-solve list');
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    if (difficulty === 'Easy') return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
-    if (difficulty === 'Medium') return 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600';
-    if (difficulty === 'Hard') return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
-    
-    const numericDifficulty = Number(difficulty);
-    if (!Number.isNaN(numericDifficulty)) {
-      if (numericDifficulty < 1200) return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
-      if (numericDifficulty < 1600) return 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600';
-      return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
+  const getDifficultyBadgeClass = useCallback((difficulty: string): string => {
+    switch (difficulty) {
+      case 'Easy':
+        return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
+      case 'Medium':
+        return 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600';
+      case 'Hard':
+        return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
+      default:
+        return 'bg-foreground text-background border-foreground';
     }
-
-    return 'bg-foreground text-background border-foreground';
-  };
+  }, []);
 
   const activeFilters = selectedPlatforms.size + selectedDifficulties.size + selectedTopics.size;
 
@@ -282,9 +280,11 @@ const ToSolveProblemList = memo(({
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Problem</TableHead>
-              <TableHead className="w-28">Platform</TableHead>
-              <TableHead className="w-24">Difficulty</TableHead>
-              <TableHead className="w-20 text-center">Actions</TableHead>
+              <TableHead>Platform</TableHead>
+              <TableHead>Difficulty / Rating</TableHead>
+              <TableHead>Submission</TableHead>
+              <TableHead>Next Review</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -296,15 +296,14 @@ const ToSolveProblemList = memo(({
                       <Button variant="ghost" size="icon" onClick={() => toggleRowExpansion(problem.id)} className="mr-2 h-8 w-8">
                         {expandedRows.has(problem.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </Button>
-                      <a
-                        href={problem.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center hover:underline"
-                      >
-                        {problem.title}
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </a>
+                      {problem.url ? (
+                        <a href={problem.url} target="_blank" rel="noopener noreferrer" className="flex items-center hover:underline">
+                          {problem.title}
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </a>
+                      ) : (
+                        problem.title
+                      )}
                     </div>
                     {problem.topics && problem.topics.length > 0 && (
                       <div className="mt-4 mb-4 flex flex-wrap gap-1">
@@ -325,55 +324,59 @@ const ToSolveProblemList = memo(({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={getDifficultyColor(problem.difficulty)}>
+                    <Badge variant="outline" className={getDifficultyBadgeClass(problem.difficulty)}>
                       {problem.difficulty}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex justify-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onEditProblem(problem)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              onMoveToSolved(problem);
-                            }}
-                            className="text-green-600 dark:text-green-400"
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Move to Solved
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => window.open(problem.url, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open Link
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => setProblemToDelete(problem.id)}
-                            className="text-red-600 dark:text-red-400"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <span className="text-sm text-muted-foreground">N/A</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">N/A</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEditProblem(problem)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            onMoveToSolved(problem);
+                          }}
+                          className="text-green-600 dark:text-green-400"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Move to Solved
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => window.open(problem.url, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open Link
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setProblemToDelete(problem.id)}
+                          className="text-red-600 dark:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
 
                 {expandedRows.has(problem.id) && (
                   <TableRow>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={6}>
                       <div className="p-4 bg-muted/50 rounded-md">
                         <h4 className="font-semibold mb-2">Notes</h4>
                         <div className="prose dark:prose-invert max-w-none">
@@ -389,7 +392,7 @@ const ToSolveProblemList = memo(({
             ))}
             {paginatedProblems.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>

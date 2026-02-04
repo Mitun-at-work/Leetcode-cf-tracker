@@ -1,5 +1,5 @@
 import { useState, memo, useCallback } from 'react';
-import type { Problem } from '../types';
+import type { Problem, Section } from '../types';
 import ProblemList from './ProblemList';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -14,6 +14,8 @@ interface ProblemTabsProps {
   onDeleteProblem: (id: string) => void;
   onProblemReviewed: (id: string, currentInterval: number) => void;
   onEditProblem: (problem: Problem) => void;
+  sections?: Section[];
+  onAddProblemToSection?: (sectionId: string, problemId: string) => void;
 }
 
 const ProblemTabs = memo(({
@@ -24,6 +26,8 @@ const ProblemTabs = memo(({
   onDeleteProblem,
   onProblemReviewed,
   onEditProblem,
+  sections = [],
+  onAddProblemToSection
 }: ProblemTabsProps) => {
   const [pickCount, setPickCount] = useState<number>(5);
   const [selectedProblems, setSelectedProblems] = useState<Problem[]>([]);
@@ -94,6 +98,8 @@ const ProblemTabs = memo(({
         onProblemReviewed={onProblemReviewed}
         onEditProblem={onEditProblem}
         isReviewList={isReviewList}
+        sections={sections}
+        onAddProblemToSection={onAddProblemToSection}
       />
     </div>
   );
