@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
-import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked, Trophy, Target } from 'lucide-react';
+import { Home, Plus, List, BarChart3, Moon, Sun, Star, Settings as SettingsIcon, Flame, Zap, BookMarked, Trophy, Target, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,7 @@ const ProblemTabs = lazy(() => import('./components/ProblemTabs'));
 const ToSolveProblemList = lazy(() => import('./components/ToSolveProblemList'));
 const MasterSheet = lazy(() => import('./components/MasterSheet'));
 const SettingsComponent = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const PracticeSession = lazy(() => import('./components/PracticeSession'));
 
 // Loading fallback component
 const ComponentLoader = () => (
@@ -257,6 +258,10 @@ function App() {
                     <div className="ml-2 h-2 w-2 bg-red-500 rounded-full"></div>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="practice">
+                  <Timer className="h-5 w-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Practice</span>
+                </TabsTrigger>
                 <TabsTrigger value="review">
                   <Star className="h-5 w-5 sm:mr-2" />
                   <span className="hidden sm:inline">Review</span>
@@ -312,7 +317,6 @@ function App() {
                   onUpdateSection={updateSection}
                   onDeleteSection={deleteSection}
                   onReorderSections={reorderSections}
-                  onAddProblemToSection={addProblemToSection}
                   onRemoveProblemFromSection={removeProblemFromSection}
                   onUpdateProblem={updateProblem}
                 />
@@ -335,6 +339,12 @@ function App() {
                   onMoveToSolved={moveToSolveProblemToSolved}
                   onEditProblem={(problem) => openForm(problem, 'tosolve')}
                 />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="practice">
+              <Suspense fallback={<ComponentLoader />}>
+                <PracticeSession />
               </Suspense>
             </TabsContent>
 

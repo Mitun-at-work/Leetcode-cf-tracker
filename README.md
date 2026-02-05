@@ -9,6 +9,7 @@ A simple, local-storage-based web application to track your coding problem-solvi
 ## ✨ Features
 
 ### 🎯 Core Functionality
+
 - **Add Problems**: Manually track problems you've solved
 - **Platform Support**: Both LeetCode and CodeForces
 - **Smart Detection**: Auto-detect platform and problem details from URLs
@@ -16,6 +17,7 @@ A simple, local-storage-based web application to track your coding problem-solvi
 - **Search & Filter**: Find problems by title, platform, difficulty, or notes
 
 ### 📊 Analytics & Insights
+
 - **Progress Dashboard**: Overview of your solving activity
 - **Streak Tracking**: Daily solving streaks with GitHub-style heatmap
 - **Platform Statistics**: LeetCode vs CodeForces breakdown
@@ -23,35 +25,40 @@ A simple, local-storage-based web application to track your coding problem-solvi
 - **Time-based Stats**: Weekly and monthly progress
 - **Progress Insights**: Smart recommendations and patterns
 
-### 💾 Data Management
-- **Local Storage**: All data stays on your device
-- **Privacy First**: No accounts or cloud sync required
-- **Export/Import**: Backup and restore your data
-- **Offline Ready**: Works without internet connection
+### � Code Execution
+
+- **C++ Code Runner**: Compile and execute C++ code directly in the browser
+- **Safe Execution**: Isolated environment with timeout protection
+- **Real-time Output**: See compilation and execution results instantly
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js (v16 or higher)
 - npm or yarn
+- Docker (optional, for full-stack deployment)
 
 ### Installation
 
 1. **Clone or download the project**
+
    ```bash
    # If using git
    git clone <repository-url>
    cd leetcode-cf-tracker
-   
+
    # Or extract if downloaded as ZIP
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Start development server**
+
    ```bash
    npm run dev
    ```
@@ -59,6 +66,27 @@ A simple, local-storage-based web application to track your coding problem-solvi
 4. **Open in browser**
    - Navigate to `http://localhost:5173`
    - Start tracking your problems!
+
+### Running with Code Execution (Full Stack)
+
+For the complete experience with C++ code execution:
+
+```bash
+# Start all services with Docker Compose
+docker-compose up --build
+
+# Or run services individually:
+# Terminal 1: C++ executor service
+cd cpp-executor && docker-compose up --build
+
+# Terminal 2: Backend API
+cd server && npm run dev
+
+# Terminal 3: Frontend
+npm run dev
+```
+
+The C++ execution service will be available at `http://localhost:8081`, and the full API at `http://localhost:3001`.
 
 ### Building for Production
 
@@ -80,6 +108,7 @@ npm run preview
 4. **Deploy with one click!**
 
 Or use Vercel CLI:
+
 ```bash
 npm i -g vercel
 vercel --prod
@@ -88,6 +117,7 @@ vercel --prod
 ### Deploy to Netlify
 
 1. **Build the project**
+
    ```bash
    npm run build
    ```
@@ -99,11 +129,13 @@ Or connect your GitHub repo at [netlify.com](https://netlify.com)
 ### Deploy to GitHub Pages
 
 1. **Install gh-pages**
+
    ```bash
    npm install --save-dev gh-pages
    ```
 
 2. **Add to package.json**
+
    ```json
    {
      "homepage": "https://yourusername.github.io/leetcode-cf-tracker",
@@ -122,6 +154,7 @@ Or connect your GitHub repo at [netlify.com](https://netlify.com)
 ### Custom Domain Setup
 
 For any platform, you can add a custom domain:
+
 - **Vercel**: Project Settings → Domains
 - **Netlify**: Site Settings → Domain Management
 - **GitHub Pages**: Repository Settings → Pages

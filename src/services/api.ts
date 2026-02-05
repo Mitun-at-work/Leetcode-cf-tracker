@@ -1,6 +1,6 @@
 import type { Problem, Contest, User, AuthResponse, ApiResponse } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiService {
   private static token: string | null = localStorage.getItem('auth_token');
@@ -194,6 +194,24 @@ class ApiService {
     await this.request(`/contests/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Code execution
+  static async executeCppCode(code: string, input: string = ''): Promise<{ output: string; success: boolean }> {
+    const response = await fetch(`${API_BASE_URL}/api/execute-cpp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getHeaders(),
+      },
+      body: JSON.stringify({ code, input }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
 }
 
