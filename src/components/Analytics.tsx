@@ -1,19 +1,16 @@
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, Suspense } from 'react';
 import type { Problem } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { useTheme } from '@/components/theme-provider';
-import ClientOnly from './client-only';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { format, isSameDay, eachDayOfInterval, eachWeekOfInterval, startOfYear, endOfYear } from 'date-fns';
+import { PlatformChart, DifficultyChart, ActivityChart, HeatmapChart } from './charts';
 
 interface AnalyticsProps {
   problems: Problem[];
 }
 
 const Analytics = memo(({ problems }: AnalyticsProps) => {
-  const { theme } = useTheme();
   const currentYear = new Date().getFullYear();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
@@ -155,9 +152,6 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
     if (problems.length === 0) return [];
 
     // Always use the selected year for weekly activity (independent of main filters)
-    const startDate = startOfYear(new Date(parseInt(weeklyActivityYear)));
-    const endDate = endOfYear(new Date(parseInt(weeklyActivityYear)));
-
     // Filter problems for the selected year only
     const yearProblems = problems.filter(p => {
       const problemYear = new Date(p.dateSolved).getFullYear();
@@ -422,92 +416,19 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="w-full">
-              {/* Month labels */}
-              <div className="relative mb-6 ml-12 h-4">
-                {heatmapData.monthLabels.map((month, i) => (
-                  <div
-                    key={i}
-                    className="absolute text-xs text-muted-foreground font-medium"
-                    style={{
-                      left: `${(month.weekIndex / heatmapData.weeks.length) * 100}%`,
-                      top: '0px'
-                    }}
-                  >
-                    {month.label}
-                  </div>
-                ))}
+            <Suspense fallback={<div className="flex items-center justify-center h-64">Loading heatmap...</div>}>
+              <HeatmapChart
+                heatmap={heatmapData.heatmap}
+                monthLabels={heatmapData.monthLabels}
+                weeks={heatmapData.weeks}
+                getHeatmapColor={getHeatmapColor}
+              />
+            </Suspense>
+            {heatmapData.isLimited && (
+              <div className="mt-2 text-xs text-muted-foreground text-center">
+                Showing recent data only (max 2 years) for optimal performance
               </div>
-
-              {/* Heatmap grid */}
-              <div className="flex items-start">
-                {/* Day labels */}
-                <div className="flex flex-col justify-around text-xs text-muted-foreground mr-3 font-medium" style={{ height: '112px' }}>
-                  <span></span>
-                  <span>Mon</span>
-                  <span></span>
-                  <span>Wed</span>
-                  <span></span>
-                  <span>Fri</span>
-                  <span></span>
-                </div>
-
-                {/* Calendar grid */}
-                <div className="flex-1 overflow-x-auto">
-                  <div
-                    className="grid gap-[1px]"
-                    style={{
-                      gridTemplateColumns: `repeat(${heatmapData.weeks.length}, minmax(0, 1fr))`,
-                      maxWidth: '100%'
-                    }}
-                  >
-                    {heatmapData.heatmap.map((week, weekIdx) => (
-                      <div key={weekIdx} className="flex flex-col gap-[1px]">
-                        {week.map((cell, dayIdx) => {
-                          const isOutOfRange = !cell.isInDataRange;
-
-                          return (
-                            <div
-                              key={dayIdx}
-                              className={`aspect-square rounded-[2px] ${
-                                isOutOfRange
-                                  ? 'bg-gray-100 dark:bg-gray-800'
-                                  : getHeatmapColor(cell.count)
-                              } hover:ring-1 hover:ring-gray-400 transition-all cursor-default`}
-                              style={{ width: '14px', height: '14px' }}
-                              title={
-                                isOutOfRange
-                                  ? `${format(cell.date, 'MMM d, yyyy')}: Out of range`
-                                  : `${format(cell.date, 'MMM d, yyyy')}: ${cell.count} ${cell.count === 1 ? 'problem' : 'problems'}`
-                              }
-                            />
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Legend */}
-              <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
-                <span>Less</span>
-                <div className="flex items-center gap-[1px]">
-                  <div className="w-[12px] h-[12px] rounded-[1px] bg-gray-100 dark:bg-gray-800" />
-                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-200 dark:bg-green-900" />
-                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-300 dark:bg-green-800" />
-                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-400 dark:bg-green-700" />
-                  <div className="w-[12px] h-[12px] rounded-[1px] bg-green-500 dark:bg-green-600" />
-                </div>
-                <span>More</span>
-              </div>
-
-              {heatmapData.isLimited && (
-                <div className="mt-2 text-xs text-muted-foreground text-center">
-                  Showing recent data only (max 2 years) for optimal performance
-                </div>
-              )}
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -536,27 +457,9 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
             </div>
           </CardHeader>
           <CardContent>
-            <ClientOnly>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyActivityData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
-                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
-                    }}
-                    labelFormatter={(label) => `${label} ${weeklyActivityYear}`}
-                    formatter={(value) => [`${value} problems`, 'Problems Solved']}
-                  />
-                  <Bar dataKey="problems" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ClientOnly>
+            <Suspense fallback={<div className="flex items-center justify-center h-64">Loading chart...</div>}>
+              <ActivityChart data={monthlyActivityData} year={weeklyActivityYear} />
+            </Suspense>
           </CardContent>
         </Card>
       )}
@@ -567,45 +470,9 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
             <CardTitle className="text-center">Platform Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ClientOnly>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={platformChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={false}
-                    outerRadius={80}
-                    innerRadius={60}
-                    paddingAngle={5}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {platformChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <text
-                    x="50%"
-                    y="50%"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill={theme === 'dark' ? '#fff' : '#000'}
-                    style={{ fontSize: '20px', fontWeight: 600 }}
-                  >
-                    {totalSolved}
-                  </text>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
-                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
-                    }}
-                  />
-                  {totalSolved > 0 && <Legend />}
-                </PieChart>
-              </ResponsiveContainer>
-            </ClientOnly>
+            <Suspense fallback={<div className="flex items-center justify-center h-64">Loading chart...</div>}>
+              <PlatformChart data={platformChartData} total={totalSolved} />
+            </Suspense>
           </CardContent>
         </Card>
 
@@ -614,45 +481,9 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
             <CardTitle className="text-center">Difficulty Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ClientOnly>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={difficultyChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={false}
-                    outerRadius={80}
-                    innerRadius={60}
-                    paddingAngle={5}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {difficultyChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <text
-                    x="50%"
-                    y="50%"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill={theme === 'dark' ? '#fff' : '#000'}
-                    style={{ fontSize: '20px', fontWeight: 600 }}
-                  >
-                    {totalDifficultySolved}
-                  </text>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#030712' : '#fff',
-                      borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
-                    }}
-                  />
-                  {totalDifficultySolved > 0 && <Legend />}
-                </PieChart>
-              </ResponsiveContainer>
-            </ClientOnly>
+            <Suspense fallback={<div className="flex items-center justify-center h-64">Loading chart...</div>}>
+              <DifficultyChart data={difficultyChartData} />
+            </Suspense>
           </CardContent>
         </Card>
 

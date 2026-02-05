@@ -30,7 +30,6 @@ const CPP_EXECUTOR_URL = process.env.CPP_EXECUTOR_URL || 'http://localhost:8081'
 
 // Routes
 app.post('/api/execute-cpp', async (req, res) => {
-  console.log('Received execute-cpp request:', { code: req.body.code?.substring(0, 100) + '...', input: req.body.input?.substring(0, 100) + '...' });
   try {
     const { code, input = '' } = req.body;
 
@@ -48,14 +47,11 @@ app.post('/api/execute-cpp', async (req, res) => {
       return res.status(400).json({ error: 'Input too long (max 10000 characters)' });
     }
 
-    console.log('About to call C++ executor with:', { url: `${CPP_EXECUTOR_URL}/execute`, inputLength: input.length });
-
     // Call C++ executor service
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
-      console.log('Sending request to C++ executor:', { url: `${CPP_EXECUTOR_URL}/execute`, body: { code: code.substring(0, 100) + '...', input: input.substring(0, 100) + '...' } });
       const response = await fetch(`${CPP_EXECUTOR_URL}/execute`, {
         method: 'POST',
         headers: {
@@ -66,7 +62,6 @@ app.post('/api/execute-cpp', async (req, res) => {
       });
 
       clearTimeout(timeoutId);
-      console.log('Received response from C++ executor:', { status: response.status, ok: response.ok });
 
       if (!response.ok) {
         throw new Error(`C++ executor service returned ${response.status}`);
@@ -83,7 +78,6 @@ app.post('/api/execute-cpp', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error executing C++ code:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({
       error: 'Failed to execute code',
@@ -100,8 +94,7 @@ app.get('/health', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`C++ Executor URL: ${CPP_EXECUTOR_URL}`);
+  // Server started successfully
 });
 
 export default app;
