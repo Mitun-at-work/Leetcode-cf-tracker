@@ -1,27 +1,161 @@
-import { useState, useCallback } from 'react';
-import Timer from './Timer';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import CodeEditor from './CodeEditor';
-import { Clock, Code, Play, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Pen, Eraser, RotateCcw, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import ApiService from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+const DrawingBoard = ({ onDrawingChange }: { onDrawingChange?: (dataUrl: string) => void }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
+  const [color, setColor] = useState('#000000');
+  const [lineWidth, setLineWidth] = useState(2);
+
+  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    setIsDrawing(true);
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }, []);
+
+  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
+    ctx.lineWidth = tool === 'eraser' ? lineWidth * 3 : lineWidth;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }, [isDrawing, tool, color, lineWidth]);
+
+  const stopDrawing = useCallback(() => {
+    setIsDrawing(false);
+    const canvas = canvasRef.current;
+    if (canvas && onDrawingChange) {
+      onDrawingChange(canvas.toDataURL());
+    }
+  }, [onDrawingChange]);
+
+  const clearCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (onDrawingChange) {
+      onDrawingChange('');
+    }
+  }, [onDrawingChange]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = 800;
+    canvas.height = 600;
+
+    // Set white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button
+          variant={tool === 'pen' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setTool('pen')}
+        >
+          <Pen className="w-4 h-4 mr-1" />
+          Pen
+        </Button>
+        <Button
+          variant={tool === 'eraser' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setTool('eraser')}
+        >
+          <Eraser className="w-4 h-4 mr-1" />
+          Eraser
+        </Button>
+        <Button variant="outline" size="sm" onClick={clearCanvas}>
+          <RotateCcw className="w-4 h-4 mr-1" />
+          Clear
+        </Button>
+        {tool === 'pen' && (
+          <>
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="w-8 h-8 border rounded cursor-pointer"
+            />
+            <select
+              value={lineWidth}
+              onChange={(e) => setLineWidth(Number(e.target.value))}
+              className="px-2 py-1 border rounded text-sm"
+            >
+              <option value={1}>Thin</option>
+              <option value={2}>Medium</option>
+              <option value={4}>Thick</option>
+              <option value={6}>Extra Thick</option>
+            </select>
+          </>
+        )}
+      </div>
+      <div className="border rounded-lg overflow-hidden bg-white">
+        <canvas
+          ref={canvasRef}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          className="cursor-crosshair"
+          style={{ display: 'block' }}
+        />
+      </div>
+    </div>
+  );
+};
 
 const PracticeSession = () => {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('cpp');
-  const [timeRemaining, setTimeRemaining] = useState(0);
   const [input, setInput] = useState('');
   const [expectedOutput, setExpectedOutput] = useState('');
   const [actualOutput, setActualOutput] = useState('');
   const [testResult, setTestResult] = useState<'pending' | 'pass' | 'fail' | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-
-  const handleTimerTimeChange = useCallback((time: number) => {
-    setTimeRemaining(time);
-  }, []);
+  const [isApproachDialogOpen, setIsApproachDialogOpen] = useState(false);
 
   const handleCodeChange = useCallback((value: string | undefined) => {
     setCode(value || '');
@@ -37,7 +171,6 @@ const PracticeSession = () => {
       return;
     }
 
-    setIsRunning(true);
     setTestResult('pending');
 
     try {
@@ -70,8 +203,6 @@ const PracticeSession = () => {
       setTestResult('fail');
       toast.error('Failed to execute code');
       console.error('API error:', error);
-    } finally {
-      setIsRunning(false);
     }
   }, [code, input, expectedOutput]);
 
@@ -79,19 +210,48 @@ const PracticeSession = () => {
     setCode('');
   }, []);
 
+  const handleCopyCode = useCallback(async () => {
+    if (!code.trim()) {
+      toast.error('No code to copy');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success('Code copied to clipboard! 📋');
+    } catch (error) {
+      toast.error('Failed to copy code to clipboard');
+      console.error('Clipboard error:', error);
+    }
+  }, [code]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Practice</h1>
-          <p className="text-muted-foreground">
-            Practice coding with input/output testing like Codeforces
-          </p>
+          <h1 className="text-2xl font-bold">Practice Session</h1>
+          <p className="text-muted-foreground">Write your approach and code solutions</p>
         </div>
+        <Dialog open={isApproachDialogOpen} onOpenChange={setIsApproachDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Lightbulb className="w-4 h-4" />
+              Approach & Planning
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Visual Planning Board</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <DrawingBoard />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Timer and Test Panel Layout */}
+      {/* Test Panel and Code Editor Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Panel: Test Cases */}
         <div className="lg:col-span-1">
@@ -151,6 +311,74 @@ const PracticeSession = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Output Comparison */}
+                {expectedOutput.trim() && actualOutput && (
+                  <div className="space-y-2 mb-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Expected Output
+                        </Label>
+                        <div className="p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded text-xs font-mono whitespace-pre-wrap min-h-[60px] max-h-[100px] overflow-y-auto">
+                          {expectedOutput.trim()}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Your Output
+                        </Label>
+                        <div className={`p-2 border rounded text-xs font-mono whitespace-pre-wrap min-h-[60px] max-h-[100px] overflow-y-auto ${
+                          testResult === 'pass'
+                            ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                            : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                        }`}>
+                          {actualOutput.trim() || 'No output'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {testResult === 'fail' && (
+                      <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-2 rounded border border-red-200 dark:border-red-800">
+                        <strong>Difference:</strong>
+                        <div className="mt-1 font-mono whitespace-pre-wrap">
+                          {(() => {
+                            const expected = expectedOutput.trim();
+                            const actual = actualOutput.trim();
+
+                            if (expected === actual) {
+                              return "Outputs match exactly";
+                            }
+
+                            // Simple diff: show line by line differences
+                            const expectedLines = expected.split('\n');
+                            const actualLines = actual.split('\n');
+                            const maxLines = Math.max(expectedLines.length, actualLines.length);
+                            const differences: string[] = [];
+
+                            for (let i = 0; i < maxLines; i++) {
+                              const expLine = expectedLines[i] || '';
+                              const actLine = actualLines[i] || '';
+
+                              if (expLine !== actLine) {
+                                if (expLine && !actLine) {
+                                  differences.push(`Line ${i + 1}: Missing output (expected: "${expLine}")`);
+                                } else if (!expLine && actLine) {
+                                  differences.push(`Line ${i + 1}: Extra output (got: "${actLine}")`);
+                                } else {
+                                  differences.push(`Line ${i + 1}: Expected "${expLine}", got "${actLine}"`);
+                                }
+                              }
+                            }
+
+                            return differences.length > 0 ? differences.join('\n') : 'Outputs differ but no specific differences found';
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Textarea
                   value={actualOutput}
                   readOnly
@@ -162,43 +390,18 @@ const PracticeSession = () => {
           </Card>
         </div>
 
-        {/* Right Panel: Code Editor and Timer */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            {/* Code Editor */}
-            <div className="xl:col-span-2">
-              <CodeEditor
-                value={code}
-                onChange={handleCodeChange}
-                language={language}
-                onLanguageChange={handleLanguageChange}
-                onRun={handleRunCode}
-                onReset={handleResetCode}
-                height="600px"
-              />
-            </div>
-
-            {/* Timer and Run Button */}
-            <div className="xl:col-span-1 space-y-4">
-              {/* Run Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={handleRunCode}
-                  disabled={isRunning || !code.trim()}
-                  size="lg"
-                  className="w-full"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  {isRunning ? 'Running...' : 'Run & Test'}
-                </Button>
-              </div>
-
-              {/* Timer */}
-              <Timer
-                onTimeChange={handleTimerTimeChange}
-              />
-            </div>
-          </div>
+        {/* Right Panel: Code Editor */}
+        <div className="lg:col-span-3">
+          <CodeEditor
+            value={code}
+            onChange={handleCodeChange}
+            language={language}
+            onLanguageChange={handleLanguageChange}
+            onRun={handleRunCode}
+            onReset={handleResetCode}
+            onCopy={handleCopyCode}
+            height="600px"
+          />
         </div>
       </div>
     </div>

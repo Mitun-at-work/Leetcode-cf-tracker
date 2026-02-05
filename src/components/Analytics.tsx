@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { format, isSameDay, eachDayOfInterval, eachWeekOfInterval, startOfYear, endOfYear } from 'date-fns';
-import { PlatformChart, DifficultyChart, ActivityChart, HeatmapChart } from './charts';
+import { PlatformChart, DifficultyChart, ActivityChart } from './charts';
 
 interface AnalyticsProps {
   problems: Problem[];
@@ -182,76 +182,6 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
   }, [problems, weeklyActivityYear]);
 
   // Heatmap data processing
-  const heatmapData = useMemo(() => {
-    if (filteredProblems.length === 0) return null;
-
-    // Get date range based on time filter
-    const startDate = timeFilter === 'year' ? startOfYear(new Date(parseInt(selectedYear))) : new Date(Math.min(...filteredProblems.map(p => new Date(p.dateSolved).getTime())));
-    const endDate = timeFilter === 'year' ? endOfYear(new Date(parseInt(selectedYear))) : new Date(Math.max(...filteredProblems.map(p => new Date(p.dateSolved).getTime())));
-
-    // For "All Time" view, limit to maximum 52 weeks (1 year) of recent data to prevent performance issues
-    let adjustedStartDate = startDate;
-    if (timeFilter === 'alltime') {
-      const maxWeeks = 52; // 1 year
-      const totalWeeks = Math.ceil((endDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-      if (totalWeeks > maxWeeks) {
-        // Show only the most recent year of data
-        adjustedStartDate = new Date(endDate.getTime() - (maxWeeks * 7 * 24 * 60 * 60 * 1000));
-      }
-    }
-
-    // Generate solve counts for the date range
-    const daysInRange = eachDayOfInterval({ start: adjustedStartDate, end: endDate });
-    const solveCounts = daysInRange.reduce((acc, day) => {
-      const count = filteredProblems.filter(p => isSameDay(new Date(p.dateSolved), day)).length;
-      acc[format(day, 'yyyy-MM-dd')] = count;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Create weeks starting from Sunday
-    const startSunday = new Date(adjustedStartDate);
-    startSunday.setDate(adjustedStartDate.getDate() - adjustedStartDate.getDay());
-    const endSaturday = new Date(endDate);
-    endSaturday.setDate(endDate.getDate() + (6 - endDate.getDay()));
-
-    const weeks = eachWeekOfInterval({ start: startSunday, end: endSaturday }, { weekStartsOn: 0 });
-
-    // Safety check: limit to maximum 104 weeks (2 years) to prevent performance issues
-    const maxWeeks = 104;
-    const limitedWeeks = weeks.length > maxWeeks ? weeks.slice(-maxWeeks) : weeks;
-
-    // Calculate month labels
-    const monthLabels: { label: string; weekIndex: number }[] = [];
-    let lastMonth = '';
-    limitedWeeks.forEach((weekStart, index) => {
-      const weekDate = new Date(weekStart);
-      weekDate.setDate(weekDate.getDate() + 3); // Use Wednesday for month calculation
-      const monthLabel = format(weekDate, 'MMM');
-
-      if (monthLabel !== lastMonth) {
-        monthLabels.push({ label: monthLabel, weekIndex: index });
-        lastMonth = monthLabel;
-      }
-    });
-
-    // Create heatmap data (7 rows for days, weeks as columns)
-    const heatmap: { date: Date; count: number; isInDataRange: boolean }[][] = limitedWeeks.map(weekStart => {
-      return Array.from({length: 7}, (_, i) => {
-        const day = new Date(weekStart);
-        day.setDate(day.getDate() + i);
-        const dateStr = format(day, 'yyyy-MM-dd');
-
-        const isInDataRange = day >= adjustedStartDate && day <= endDate;
-        const count = isInDataRange ? (solveCounts[dateStr] || 0) : 0;
-
-        return { date: day, count, isInDataRange };
-      });
-    });
-
-    return { heatmap, weeks: limitedWeeks, monthLabels, isLimited: weeks.length > maxWeeks };
-  }, [filteredProblems, selectedYear, timeFilter]);
-
-  // Heatmap color function
   const getHeatmapColor = useCallback((count: number) => {
     if (count === 0) return 'bg-gray-100 dark:bg-gray-800';
     if (count === 1) return 'bg-green-200 dark:bg-green-900';
@@ -405,33 +335,6 @@ const Analytics = memo(({ problems }: AnalyticsProps) => {
           )}
         </CardContent>
       </Card>
-
-      {/* Activity Heatmap */}
-      {heatmapData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Activity Heatmap {timeFilter === 'year' ? `- ${selectedYear}` : '- All Time'}
-              {heatmapData.isLimited && <span className="text-sm font-normal text-muted-foreground"> (Recent Data)</span>}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<div className="flex items-center justify-center h-64">Loading heatmap...</div>}>
-              <HeatmapChart
-                heatmap={heatmapData.heatmap}
-                monthLabels={heatmapData.monthLabels}
-                weeks={heatmapData.weeks}
-                getHeatmapColor={getHeatmapColor}
-              />
-            </Suspense>
-            {heatmapData.isLimited && (
-              <div className="mt-2 text-xs text-muted-foreground text-center">
-                Showing recent data only (max 2 years) for optimal performance
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Monthly Activity */}
       {problems.some(p => new Date(p.dateSolved).getFullYear() === parseInt(weeklyActivityYear)) && (

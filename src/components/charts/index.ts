@@ -4,4 +4,3 @@ import { lazy } from 'react';
 export const PlatformChart = lazy(() => import('./PlatformChart'));
 export const DifficultyChart = lazy(() => import('./DifficultyChart'));
 export const ActivityChart = lazy(() => import('./ActivityChart'));
-export const HeatmapChart = lazy(() => import('./HeatmapChart'));

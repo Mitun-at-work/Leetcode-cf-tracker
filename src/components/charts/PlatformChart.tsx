@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { useTheme } from '@/components/theme-provider';
 import ClientOnly from '../client-only';
 
@@ -47,6 +47,11 @@ const PlatformChart = memo(({ data, total }: PlatformChartProps) => {
               borderColor: theme === 'dark' ? '#27272a' : '#e5e7eb'
             }}
             formatter={(value) => [`${value} problems`, 'Problems Solved']}
+          />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            formatter={(value) => <span style={{ color: theme === 'dark' ? '#fff' : '#000' }}>{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>
