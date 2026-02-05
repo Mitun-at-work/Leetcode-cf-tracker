@@ -132,18 +132,23 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
           const enableNotifications = typeof data.enableNotifications === 'boolean' ? data.enableNotifications : (localStorage.getItem('enableNotifications') === 'true');
 
           const normalizeProblem = (p: ImportedProblemData) => ({
-            ...p,
             id: p?.id || crypto.randomUUID(),
-            createdAt: p?.createdAt || new Date().toISOString(),
+            platform: p?.platform || 'leetcode',
+            title: p?.title || 'Unknown Problem',
+            problemId: p?.problemId || 'unknown',
+            difficulty: p?.difficulty || 'Unknown',
+            url: p?.url || '',
+            submissionLink: p?.submissionLink || '',
             dateSolved: p?.dateSolved || new Date().toISOString(),
+            createdAt: p?.createdAt || new Date().toISOString(),
             notes: p?.notes || '',
             isReview: typeof p?.isReview === 'boolean' ? p.isReview : false,
             repetition: typeof p?.repetition === 'number' ? p.repetition : 0,
             interval: typeof p?.interval === 'number' ? p.interval : 0,
             nextReviewDate: p?.nextReviewDate ?? null,
+            topics: Array.isArray(p?.topics) ? p.topics : [],
             status: p?.status || 'active',
             companies: Array.isArray(p?.companies) ? p.companies : [],
-            topics: Array.isArray(p?.topics) ? p.topics : [],
             inMasterSheet: typeof p?.inMasterSheet === 'boolean' ? p.inMasterSheet : false,
             toSolve: typeof p?.toSolve === 'boolean' ? p.toSolve : false,
           });
