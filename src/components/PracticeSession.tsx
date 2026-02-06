@@ -1,152 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import CodeEditor from './CodeEditor';
-import { CheckCircle, XCircle, Pen, Eraser, RotateCcw, Lightbulb } from 'lucide-react';
+import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ApiService from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-
-const DrawingBoard = ({ onDrawingChange }: { onDrawingChange?: (dataUrl: string) => void }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
-  const [color, setColor] = useState('#000000');
-  const [lineWidth, setLineWidth] = useState(2);
-
-  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    setIsDrawing(true);
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  }, []);
-
-  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
-    ctx.lineWidth = tool === 'eraser' ? lineWidth * 3 : lineWidth;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-  }, [isDrawing, tool, color, lineWidth]);
-
-  const stopDrawing = useCallback(() => {
-    setIsDrawing(false);
-    const canvas = canvasRef.current;
-    if (canvas && onDrawingChange) {
-      onDrawingChange(canvas.toDataURL());
-    }
-  }, [onDrawingChange]);
-
-  const clearCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (onDrawingChange) {
-      onDrawingChange('');
-    }
-  }, [onDrawingChange]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size
-    canvas.width = 800;
-    canvas.height = 600;
-
-    // Set white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }, []);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant={tool === 'pen' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setTool('pen')}
-        >
-          <Pen className="w-4 h-4 mr-1" />
-          Pen
-        </Button>
-        <Button
-          variant={tool === 'eraser' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setTool('eraser')}
-        >
-          <Eraser className="w-4 h-4 mr-1" />
-          Eraser
-        </Button>
-        <Button variant="outline" size="sm" onClick={clearCanvas}>
-          <RotateCcw className="w-4 h-4 mr-1" />
-          Clear
-        </Button>
-        {tool === 'pen' && (
-          <>
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              className="w-8 h-8 border rounded cursor-pointer"
-            />
-            <select
-              value={lineWidth}
-              onChange={(e) => setLineWidth(Number(e.target.value))}
-              className="px-2 py-1 border rounded text-sm"
-            >
-              <option value={1}>Thin</option>
-              <option value={2}>Medium</option>
-              <option value={4}>Thick</option>
-              <option value={6}>Extra Thick</option>
-            </select>
-          </>
-        )}
-      </div>
-      <div className="border rounded-lg overflow-hidden bg-white">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          className="cursor-crosshair"
-          style={{ display: 'block' }}
-        />
-      </div>
-    </div>
-  );
-};
 
 const PracticeSession = () => {
   const [code, setCode] = useState('');
@@ -155,7 +15,64 @@ const PracticeSession = () => {
   const [expectedOutput, setExpectedOutput] = useState('');
   const [actualOutput, setActualOutput] = useState('');
   const [testResult, setTestResult] = useState<'pending' | 'pass' | 'fail' | null>(null);
-  const [isApproachDialogOpen, setIsApproachDialogOpen] = useState(false);
+
+  // Load saved state on component mount
+  useEffect(() => {
+    try {
+      const savedCode = localStorage.getItem('practice-session-code');
+      const savedLanguage = localStorage.getItem('practice-session-language');
+      const savedInput = localStorage.getItem('practice-session-input');
+      const savedExpectedOutput = localStorage.getItem('practice-session-expected-output');
+
+      let hasSavedData = false;
+      if (savedCode) {
+        setCode(savedCode);
+        hasSavedData = true;
+      }
+      if (savedLanguage) setLanguage(savedLanguage);
+      if (savedInput) setInput(savedInput);
+      if (savedExpectedOutput) setExpectedOutput(savedExpectedOutput);
+
+      if (hasSavedData) {
+        toast.success('Previous practice session restored!');
+      }
+    } catch (error) {
+      console.warn('Failed to load practice session state:', error);
+    }
+  }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('practice-session-code', code);
+    } catch (error) {
+      console.warn('Failed to save code to localStorage:', error);
+    }
+  }, [code]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('practice-session-language', language);
+    } catch (error) {
+      console.warn('Failed to save language to localStorage:', error);
+    }
+  }, [language]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('practice-session-input', input);
+    } catch (error) {
+      console.warn('Failed to save input to localStorage:', error);
+    }
+  }, [input]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('practice-session-expected-output', expectedOutput);
+    } catch (error) {
+      console.warn('Failed to save expected output to localStorage:', error);
+    }
+  }, [expectedOutput]);
 
   const handleCodeChange = useCallback((value: string | undefined) => {
     setCode(value || '');
@@ -210,6 +127,27 @@ const PracticeSession = () => {
     setCode('');
   }, []);
 
+  const handleResetSession = useCallback(() => {
+    setCode('');
+    setLanguage('cpp');
+    setInput('');
+    setExpectedOutput('');
+    setActualOutput('');
+    setTestResult(null);
+
+    // Clear localStorage
+    try {
+      localStorage.removeItem('practice-session-code');
+      localStorage.removeItem('practice-session-language');
+      localStorage.removeItem('practice-session-input');
+      localStorage.removeItem('practice-session-expected-output');
+      toast.success('Practice session reset!');
+    } catch (error) {
+      console.warn('Failed to clear localStorage:', error);
+      toast.success('Session reset (localStorage clear failed)');
+    }
+  }, []);
+
   const handleCopyCode = useCallback(async () => {
     if (!code.trim()) {
       toast.error('No code to copy');
@@ -233,22 +171,10 @@ const PracticeSession = () => {
           <h1 className="text-2xl font-bold">Practice Session</h1>
           <p className="text-muted-foreground">Write your approach and code solutions</p>
         </div>
-        <Dialog open={isApproachDialogOpen} onOpenChange={setIsApproachDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Lightbulb className="w-4 h-4" />
-              Approach & Planning
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Visual Planning Board</DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              <DrawingBoard />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button variant="outline" size="sm" onClick={handleResetSession} className="gap-2">
+          <RotateCcw className="w-4 h-4" />
+          Reset Session
+        </Button>
       </div>
 
       {/* Test Panel and Code Editor Layout */}
