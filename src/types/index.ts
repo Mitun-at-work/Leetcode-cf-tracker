@@ -219,6 +219,9 @@ export interface ImportedProblemData {
   difficulty: string;
   tags?: string[];
   source?: string;
+  platform?: 'leetcode' | 'codeforces' | 'atcoder' | 'algozenith' | 'cses' | 'hackerrank';
+  problemId?: string;
+  submissionLink?: string;
   id?: string;
   createdAt?: string;
   dateSolved?: string;

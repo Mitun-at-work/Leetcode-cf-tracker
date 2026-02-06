@@ -309,7 +309,7 @@ const CodeEditor = ({
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
-              fontSize: 14,
+              fontSize: 20,
               lineNumbers: 'on',
               roundedSelection: false,
               scrollBeyondLastLine: false,

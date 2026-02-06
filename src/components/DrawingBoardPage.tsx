@@ -7,7 +7,7 @@ const DrawingBoardPage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
-  const [color, setColor] = useState('#000000');
+  const [color, setColor] = useState<'black' | 'red'>('black');
   const [lineWidth, setLineWidth] = useState(2);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -40,7 +40,7 @@ const DrawingBoardPage = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
+    ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : (color === 'black' ? '#000000' : '#ff0000');
     ctx.lineWidth = tool === 'eraser' ? lineWidth * 3 : lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -191,14 +191,25 @@ const DrawingBoardPage = () => {
 
         <div className="w-px h-6 bg-gray-300 mx-2" />
 
-        {/* Color and Size Controls */}
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          className="w-8 h-8 border rounded cursor-pointer"
-          title="Stroke Color"
-        />
+        {/* Color Controls */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant={color === 'black' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setColor('black')}
+            className="w-8 h-8 p-0 border-2 border-gray-300"
+            style={{ backgroundColor: '#000000' }}
+            title="Black"
+          />
+          <Button
+            variant={color === 'red' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setColor('red')}
+            className="w-8 h-8 p-0 border-2 border-gray-300"
+            style={{ backgroundColor: '#ff0000' }}
+            title="Red"
+          />
+        </div>
         <select
           value={lineWidth}
           onChange={(e) => setLineWidth(Number(e.target.value))}
