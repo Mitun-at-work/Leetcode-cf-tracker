@@ -7,29 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Plus, Trash2, Edit, X, ChevronDown, ChevronRight, GripVertical, ExternalLink, CheckCircle, Circle, Search, BarChart3 } from 'lucide-react';
+import { MoreHorizontal, Plus, Trash2, Edit, X, ChevronDown, ChevronRight, ExternalLink, CheckCircle, Circle, Search, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
-interface SortableSectionProps {
+interface SectionProps {
   section: Section;
   problems: Problem[];
   onToggleExpansion: (sectionId: string) => void;
@@ -37,12 +20,16 @@ interface SortableSectionProps {
   onDeleteSection: (id: string) => void;
   onRemoveProblem: (sectionId: string, problemId: string) => void;
   onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
+  onAddSubsection?: (parentId: string, name: string) => void;
+  setSubsectionDialog: (dialog: { isOpen: boolean; parentId: string; name: string }) => void;
   isExpanded: boolean;
   editingSection: { id: string; name: string } | null;
   setEditingSection: (section: { id: string; name: string } | null) => void;
+  level?: number;
+  expandedSections: Set<string>;
 }
 
-const SortableSection = ({
+const Section = ({
   section,
   problems,
   onToggleExpansion,
@@ -50,44 +37,21 @@ const SortableSection = ({
   onDeleteSection,
   onRemoveProblem,
   onUpdateProblem,
+  onAddSubsection,
+  setSubsectionDialog,
   isExpanded,
   editingSection,
   setEditingSection,
-}: SortableSectionProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: section.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
+  level = 0,
+  expandedSections,
+}: SectionProps) => {
   const sectionProblems = problems.filter(p => section.problemIds.includes(p.id));
 
   return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className={isDragging ? 'opacity-50' : ''}
-    >
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              {...attributes}
-              {...listeners}
-              className="cursor-grab h-6 w-6 p-0"
-            >
-              <GripVertical className="h-4 w-4" />
-            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -132,6 +96,10 @@ const SortableSection = ({
                       <Edit className="h-4 w-4 mr-2" />
                       Rename
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSubsectionDialog({ isOpen: true, parentId: section.id, name: '' })}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Subsection
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDeleteSection(section.id)}
                       className="text-red-600"
@@ -146,43 +114,46 @@ const SortableSection = ({
       </CardHeader>
       {isExpanded && (
         <CardContent className="pt-0">
-          {/* Section Statistics */}
-          <div className="flex items-center justify-between mb-4 p-3 bg-muted/30 rounded-lg">
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{sectionProblems.length}</span>
-                <span className="text-muted-foreground">problems</span>
+          {/* Section Statistics - Only show for subsections (level > 0) */}
+          {level > 0 && (
+            <div className="flex items-center justify-between mb-4 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{sectionProblems.length}</span>
+                  <span className="text-muted-foreground">problems</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-green-600">
+                    {sectionProblems.filter(p => p.status === 'learned').length}
+                  </span>
+                  <span className="text-muted-foreground">learned</span>
+                </div>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-green-600">
-                  {sectionProblems.filter(p => p.status === 'learned').length}
+                <span className="text-sm text-muted-foreground">Progress</span>
+                <div className="w-24">
+                  <Progress
+                    value={sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0}
+                    className="h-2"
+                  />
+                </div>
+                <span className="text-sm font-medium">
+                  {Math.round(sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0)}%
                 </span>
-                <span className="text-muted-foreground">learned</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Progress</span>
-              <div className="w-24">
-                <Progress
-                  value={sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0}
-                  className="h-2"
-                />
-              </div>
-              <span className="text-sm font-medium">
-                {Math.round(sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0)}%
-              </span>
-            </div>
-          </div>
+          )}
 
-          {sectionProblems.length === 0 ? (
+          {/* Show problems only for subsections (level > 0) */}
+          {level > 0 && sectionProblems.length === 0 ? (
             <div className="text-center py-8">
               <Circle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No problems in this section yet.</p>
+              <p className="text-muted-foreground">No problems in this subsection yet.</p>
               <p className="text-sm text-muted-foreground/70 mt-1">Add problems to start tracking your progress!</p>
             </div>
-          ) : (
+          ) : level > 0 && sectionProblems.length > 0 ? (
             <div className="space-y-3">
               {sectionProblems.map((problem) => (
                 <div key={problem.id} className="group relative p-4 border rounded-lg bg-card hover:bg-muted/30 hover:border-muted-foreground/20 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -226,7 +197,7 @@ const SortableSection = ({
                           size="sm"
                           onClick={() => onRemoveProblem(section.id, problem.id)}
                           className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200 flex-shrink-0"
-                          title="Remove from section"
+                          title="Remove from subsection"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -264,6 +235,37 @@ const SortableSection = ({
                 </div>
               ))}
             </div>
+          ) : null}
+
+          {/* Subsections */}
+          {section.subsections && section.subsections.length > 0 && (
+            <div className="mt-6 pl-4 border-l-2 border-muted">
+              <div className="space-y-3">
+                {section.subsections.map((subsection) => (
+                  <Section
+                    key={subsection.id}
+                    section={subsection}
+                    problems={problems}
+                    onToggleExpansion={onToggleExpansion}
+                    onEditSection={() => {
+                      if (editingSection?.id === subsection.id) {
+                        onEditSection();
+                      }
+                    }}
+                    onDeleteSection={onDeleteSection}
+                    onRemoveProblem={onRemoveProblem}
+                    onUpdateProblem={onUpdateProblem}
+                    onAddSubsection={onAddSubsection}
+                    setSubsectionDialog={setSubsectionDialog}
+                    isExpanded={expandedSections.has(subsection.id)}
+                    editingSection={editingSection}
+                    setEditingSection={setEditingSection}
+                    level={level + 1}
+                    expandedSections={expandedSections}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </CardContent>
       )}
@@ -277,9 +279,9 @@ interface MasterSheetProps {
   onAddSection: (name: string) => void;
   onUpdateSection: (id: string, name: string) => void;
   onDeleteSection: (id: string) => void;
-  onReorderSections: (sections: Section[]) => void;
   onRemoveProblemFromSection: (sectionId: string, problemId: string) => void;
   onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
+  onAddSubsection?: (parentId: string, name: string) => void;
 }
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
@@ -312,41 +314,33 @@ const MasterSheet = ({
   onAddSection,
   onUpdateSection,
   onDeleteSection,
-  onReorderSections,
   onRemoveProblemFromSection,
   onUpdateProblem,
+  onAddSubsection,
 }: MasterSheetProps) => {
   const [newSectionName, setNewSectionName] = useState('');
   const [editingSection, setEditingSection] = useState<{ id: string; name: string } | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      const oldIndex = sections.findIndex((section) => section.id === active.id);
-      const newIndex = sections.findIndex((section) => section.id === over.id);
-
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const reorderedSections = arrayMove(sections, oldIndex, newIndex);
-        onReorderSections(reorderedSections);
-      }
-    }
-  };
+  const [subsectionDialog, setSubsectionDialog] = useState<{ isOpen: boolean; parentId: string; name: string }>({
+    isOpen: false,
+    parentId: '',
+    name: '',
+  });
 
   const handleAddSection = () => {
     if (newSectionName.trim()) {
       onAddSection(newSectionName.trim());
       setNewSectionName('');
       toast.success('Section added successfully!');
+    }
+  };
+
+  const handleAddSubsection = () => {
+    if (subsectionDialog.name.trim() && onAddSubsection) {
+      onAddSubsection(subsectionDialog.parentId, subsectionDialog.name.trim());
+      setSubsectionDialog({ isOpen: false, parentId: '', name: '' });
+      toast.success('Subsection added successfully!');
     }
   };
 
@@ -538,36 +532,74 @@ const MasterSheet = ({
           </CardContent>
         </Card>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={filteredSections.map(s => s.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {filteredSections.map((section) => {
-                const isExpanded = expandedSections.has(section.id);
+        <div className="space-y-3">
+          {filteredSections.map((section) => {
+            const isExpanded = expandedSections.has(section.id);
 
-                return (
-                  <SortableSection
-                    key={section.id}
-                    section={section}
-                    problems={problems}
-                    onToggleExpansion={toggleSectionExpansion}
-                    onEditSection={handleUpdateSection}
-                    onDeleteSection={handleDeleteSection}
-                    onRemoveProblem={handleRemoveProblem}
-                    onUpdateProblem={onUpdateProblem}
-                    isExpanded={isExpanded}
-                    editingSection={editingSection}
-                    setEditingSection={setEditingSection}
-                  />
-                );
-              })}
-            </div>
-          </SortableContext>
-        </DndContext>
+            return (
+              <Section
+                key={section.id}
+                section={section}
+                problems={problems}
+                onToggleExpansion={toggleSectionExpansion}
+                onEditSection={handleUpdateSection}
+                onDeleteSection={handleDeleteSection}
+                onRemoveProblem={handleRemoveProblem}
+                onUpdateProblem={onUpdateProblem}
+                onAddSubsection={onAddSubsection}
+                isExpanded={isExpanded}
+                editingSection={editingSection}
+                setEditingSection={setEditingSection}
+                setSubsectionDialog={setSubsectionDialog}
+                expandedSections={expandedSections}
+              />
+            );
+          })}
+        </div>
       )}
+
+      {/* Subsection Creation Dialog */}
+      <Dialog open={subsectionDialog.isOpen} onOpenChange={(open) => setSubsectionDialog({ ...subsectionDialog, isOpen: open })}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Subsection</DialogTitle>
+            <DialogDescription>
+              Enter a name for the new subsection.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="subsection-name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="subsection-name"
+                value={subsectionDialog.name}
+                onChange={(e) => setSubsectionDialog({ ...subsectionDialog, name: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter subsection name..."
+                onKeyPress={(e) => e.key === 'Enter' && handleAddSubsection()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSubsectionDialog({ isOpen: false, parentId: '', name: '' })}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAddSubsection}
+              disabled={!subsectionDialog.name.trim()}
+            >
+              Create Subsection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

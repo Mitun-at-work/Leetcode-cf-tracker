@@ -7,9 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme, ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/sonner';
 import { useProblems } from './hooks/useProblems';
-import { useNotifications } from './hooks/useNotifications';
 import { useProblemForm } from './hooks/useProblemForm';
 import { useAchievements } from './hooks/useAchievements';
 
@@ -54,9 +52,9 @@ function App() {
     addSection,
     updateSection,
     deleteSection,
-    reorderSections,
     addProblemToSection,
     removeProblemFromSection,
+    addSubsection,
   } = useProblems();
 
   // Achievements hook
@@ -117,9 +115,6 @@ function App() {
     }
   };
 
-
-  // Notifications
-  useNotifications(problems, potdProblems, []);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -290,9 +285,9 @@ function App() {
                     onAddSection={addSection}
                     onUpdateSection={updateSection}
                     onDeleteSection={deleteSection}
-                    onReorderSections={reorderSections}
                     onRemoveProblemFromSection={removeProblemFromSection}
                     onUpdateProblem={updateProblem}
+                    onAddSubsection={addSubsection}
                   />
                 </Suspense>
               </TabsContent>
@@ -357,7 +352,6 @@ function App() {
               </TabsContent>
             </Tabs>
           </main>
-          <Toaster />
         </div>
       </ErrorBoundary>
     </ThemeProvider>

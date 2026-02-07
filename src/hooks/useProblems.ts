@@ -335,11 +335,16 @@ export const useProblems = () => {
   }, []);
 
   const deleteSection = useCallback((id: string) => {
-    setSections(prev => prev.filter(s => s.id !== id));
-  }, []);
+    const deleteSectionRecursive = (sections: Section[]): Section[] => {
+      return sections
+        .filter(s => s.id !== id) // Remove the section if it's at this level
+        .map(s => ({
+          ...s,
+          subsections: s.subsections ? deleteSectionRecursive(s.subsections) : undefined
+        })); // Recursively process subsections
+    };
 
-  const reorderSections = useCallback((reorderedSections: Section[]) => {
-    setSections(reorderedSections);
+    setSections(prev => deleteSectionRecursive(prev));
   }, []);
 
   const addProblemToSection = useCallback((sectionId: string, problemId: string) => {
@@ -353,6 +358,21 @@ export const useProblems = () => {
       prev.map(s => (s.id === sectionId ? { ...s, problemIds: s.problemIds.filter(id => id !== problemId) } : s))
     );
     // Optionally remove from problems if not in any section, but for now keep it
+  }, []);
+
+  const addSubsection = useCallback((parentId: string, name: string) => {
+    const newSubsection: Section = {
+      id: crypto.randomUUID(),
+      name,
+      problemIds: [],
+      parentId,
+    };
+    setSections(prev =>
+      prev.map(s => (s.id === parentId ? {
+        ...s,
+        subsections: [...(s.subsections || []), newSubsection]
+      } : s))
+    );
   }, []);
 
   // Computed values
@@ -393,8 +413,8 @@ export const useProblems = () => {
     addSection,
     updateSection,
     deleteSection,
-    reorderSections,
     addProblemToSection,
     removeProblemFromSection,
+    addSubsection,
   };
 };

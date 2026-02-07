@@ -60,6 +60,23 @@ interface ProblemListProps {
   onAddProblemToSection?: (sectionId: string, problemId: string) => void;
 }
 
+// Helper function to get all subsections (flattened)
+const getAllSubsections = (sections: Section[]): Section[] => {
+  const subsections: Section[] = [];
+  
+  const traverseSections = (secs: Section[]) => {
+    secs.forEach(section => {
+      if (section.subsections && section.subsections.length > 0) {
+        subsections.push(...section.subsections);
+        traverseSections(section.subsections);
+      }
+    });
+  };
+  
+  traverseSections(sections);
+  return subsections;
+};
+
 const ProblemList = memo(({ 
   problems, 
   onUpdateProblem, 
@@ -658,33 +675,33 @@ const ProblemList = memo(({
           <DialogHeader>
             <DialogTitle>Add to Master Sheet</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Select a section to add "{problemToAddToSection?.title}" to:
+              Select a subsection to add "{problemToAddToSection?.title}" to:
             </p>
           </DialogHeader>
           <div className="py-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-              {sections.map((section) => (
+              {getAllSubsections(sections).map((subsection) => (
                 <div
-                  key={section.id}
+                  key={subsection.id}
                   className="relative p-4 border border-border rounded-lg hover:border-primary hover:bg-accent/50 cursor-pointer transition-all duration-200 group"
                   onClick={() => {
                     if (problemToAddToSection && onAddProblemToSection) {
-                      // Add problem to section
-                      onAddProblemToSection(section.id, problemToAddToSection.id);
+                      // Add problem to subsection
+                      onAddProblemToSection(subsection.id, problemToAddToSection.id);
                       // Mark problem as in master sheet
                       onUpdateProblem(problemToAddToSection.id, { inMasterSheet: true });
                       setProblemToAddToSection(null);
-                      toast.success(`Added to "${section.name}" section`);
+                      toast.success(`Added to "${subsection.name}" subsection`);
                     }
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                        {section.name}
+                        {subsection.name}
                       </h4>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {section.problemIds.length} problem{section.problemIds.length !== 1 ? 's' : ''}
+                        {subsection.problemIds.length} problem{subsection.problemIds.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -697,15 +714,15 @@ const ProblemList = memo(({
                   </div>
                 </div>
               ))}
-              {sections.length === 0 && (
+              {getAllSubsections(sections).length === 0 && (
                 <div className="col-span-full text-center py-8">
                   <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
                     <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">No sections available</p>
-                  <p className="text-xs text-muted-foreground">Create a section in the Master Sheet tab first.</p>
+                  <p className="text-sm text-muted-foreground mb-2">No subsections available</p>
+                  <p className="text-xs text-muted-foreground">Create a section with subsections in the Master Sheet tab first.</p>
                 </div>
               )}
             </div>

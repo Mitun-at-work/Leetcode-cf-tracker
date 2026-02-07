@@ -5,12 +5,6 @@ import { getReviewIntervals, saveReviewIntervals, getDailyGoal, saveDailyGoal } 
 // Mock dependencies
 vi.mock('../../utils/storage');
 vi.mock('../../utils/settingsStorage');
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -53,18 +47,16 @@ describe('Settings Component - Import/Export Functions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup localStorage mocks
-    mockLocalStorage.getItem.mockImplementation((key: string) => {
-      if (key === 'enableNotifications') return 'false';
-      return null;
-    });
-
     // Setup StorageService mocks
     vi.mocked(StorageService.getProblems).mockResolvedValue([]);
+    vi.mocked(StorageService.getPotdProblems).mockResolvedValue([]);
+    vi.mocked(StorageService.getCompanyProblems).mockResolvedValue([]);
     vi.mocked(StorageService.getToSolveProblems).mockResolvedValue([]);
     vi.mocked(StorageService.getSections).mockResolvedValue([]);
     vi.mocked(StorageService.getContests).mockResolvedValue([]);
     vi.mocked(StorageService.saveProblems).mockResolvedValue();
+    vi.mocked(StorageService.savePotdProblems).mockResolvedValue();
+    vi.mocked(StorageService.saveCompanyProblems).mockResolvedValue();
     vi.mocked(StorageService.saveToSolveProblems).mockResolvedValue();
     vi.mocked(StorageService.saveSections).mockResolvedValue();
     vi.mocked(StorageService.saveContests).mockResolvedValue();
@@ -119,13 +111,14 @@ describe('Settings Component - Import/Export Functions', () => {
       }));
 
       const data = {
-        problems: cleanedProblems,
+        problems: await StorageService.getProblems(),
+        potdProblems: await StorageService.getPotdProblems(),
+        companyProblems: await StorageService.getCompanyProblems(),
         toSolveProblems: await StorageService.getToSolveProblems(),
-        sections: cleanedSections,
+        sections: await StorageService.getSections(),
         contests: await StorageService.getContests(),
         reviewIntervals: getReviewIntervals(),
         dailyGoal: getDailyGoal(),
-        enableNotifications: localStorage.getItem('enableNotifications') === 'true',
       };
 
       return data;
@@ -134,6 +127,8 @@ describe('Settings Component - Import/Export Functions', () => {
     const exportedData = await exportLogic();
 
     expect(StorageService.getProblems).toHaveBeenCalled();
+    expect(StorageService.getPotdProblems).toHaveBeenCalled();
+    expect(StorageService.getCompanyProblems).toHaveBeenCalled();
     expect(StorageService.getToSolveProblems).toHaveBeenCalled();
     expect(StorageService.getSections).toHaveBeenCalled();
     expect(StorageService.getContests).toHaveBeenCalled();
@@ -142,11 +137,13 @@ describe('Settings Component - Import/Export Functions', () => {
 
     // Verify data structure
     expect(exportedData.problems).toHaveLength(1);
-    expect(exportedData.problems[0]).not.toHaveProperty('companies');
+    expect(exportedData.potdProblems).toBeDefined();
+    expect(exportedData.companyProblems).toBeDefined();
+    expect(exportedData.toSolveProblems).toBeDefined();
     expect(exportedData.sections).toHaveLength(1);
+    expect(exportedData.contests).toBeDefined();
     expect(exportedData.reviewIntervals).toEqual([1, 3, 7]);
     expect(exportedData.dailyGoal).toBe(5);
-    expect(exportedData.enableNotifications).toBe(false);
   });
 
   it('should import data correctly', async () => {
@@ -179,7 +176,6 @@ describe('Settings Component - Import/Export Functions', () => {
       contests: [],
       reviewIntervals: [2, 4, 8],
       dailyGoal: 10,
-      enableNotifications: true,
     };
 
     const importLogic = async (data: any) => {
@@ -191,7 +187,6 @@ describe('Settings Component - Import/Export Functions', () => {
       const contests = Array.isArray(data.contests) ? data.contests : [];
       const reviewIntervals = Array.isArray(data.reviewIntervals) ? data.reviewIntervals : getReviewIntervals();
       const dailyGoal = typeof data.dailyGoal === 'number' && data.dailyGoal > 0 ? data.dailyGoal : getDailyGoal();
-      const enableNotifications = typeof data.enableNotifications === 'boolean' ? data.enableNotifications : (localStorage.getItem('enableNotifications') === 'true');
 
       const normalizeProblem = (p: any) => ({
         id: p?.id || crypto.randomUUID(),
@@ -229,12 +224,10 @@ describe('Settings Component - Import/Export Functions', () => {
       await StorageService.saveContests(contests);
       saveReviewIntervals(reviewIntervals);
       saveDailyGoal(dailyGoal);
-      localStorage.setItem('enableNotifications', enableNotifications.toString());
 
       return {
         reviewIntervals,
         dailyGoal,
-        enableNotifications,
       };
     };
 
@@ -250,12 +243,10 @@ describe('Settings Component - Import/Export Functions', () => {
     })]);
     expect(saveReviewIntervals).toHaveBeenCalledWith([2, 4, 8]);
     expect(saveDailyGoal).toHaveBeenCalledWith(10);
-    expect(mockLocalStorage.setItem).toHaveBeenCalledWith('enableNotifications', 'true');
 
     expect(result).toEqual({
       reviewIntervals: [2, 4, 8],
       dailyGoal: 10,
-      enableNotifications: true,
     });
   });
 

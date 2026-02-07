@@ -24,6 +24,8 @@ export interface Section {
   id: string;
   name: string;
   problemIds: string[];
+  subsections?: Section[];
+  parentId?: string;
 }
 
 export interface PlatformStats {
