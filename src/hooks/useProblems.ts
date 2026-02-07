@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Problem, ActiveDailyCodingChallengeQuestion, Section } from '../types';
 import StorageService from '../utils/storage';
 import { toast } from 'sonner';
@@ -94,11 +94,6 @@ export const useProblems = () => {
 
         return updatedProblem;
       });
-
-      // Save immediately if inMasterSheet is being updated
-      if (updates.inMasterSheet !== undefined) {
-        StorageService.saveProblems(newProblems);
-      }
 
       return newProblems;
     });
@@ -335,54 +330,35 @@ export const useProblems = () => {
   }, []);
 
   const deleteSection = useCallback((id: string) => {
-    const deleteSectionRecursive = (sections: Section[]): Section[] => {
-      return sections
-        .filter(s => s.id !== id) // Remove the section if it's at this level
-        .map(s => ({
-          ...s,
-          subsections: s.subsections ? deleteSectionRecursive(s.subsections) : undefined
-        })); // Recursively process subsections
-    };
-
-    setSections(prev => deleteSectionRecursive(prev));
-  }, []);
-
-  const addProblemToSection = useCallback((sectionId: string, problemId: string) => {
-    setSections(prev =>
-      prev.map(s => (s.id === sectionId ? { ...s, problemIds: [...s.problemIds, problemId] } : s))
-    );
+    setSections(prev => prev.filter(s => s.id !== id));
   }, []);
 
   const removeProblemFromSection = useCallback((sectionId: string, problemId: string) => {
     setSections(prev =>
-      prev.map(s => (s.id === sectionId ? { ...s, problemIds: s.problemIds.filter(id => id !== problemId) } : s))
+      prev.map(s => (s.id === sectionId ? {
+        ...s,
+        problemIds: s.problemIds.filter(id => id !== problemId)
+      } : s))
     );
-    // Optionally remove from problems if not in any section, but for now keep it
   }, []);
 
-  const addSubsection = useCallback((parentId: string, name: string) => {
-    const newSubsection: Section = {
-      id: crypto.randomUUID(),
-      name,
-      problemIds: [],
-      parentId,
-    };
+  const addProblemToSection = useCallback((sectionId: string, problemId: string) => {
     setSections(prev =>
-      prev.map(s => (s.id === parentId ? {
+      prev.map(s => (s.id === sectionId ? {
         ...s,
-        subsections: [...(s.subsections || []), newSubsection]
+        problemIds: s.problemIds.includes(problemId) ? s.problemIds : [...s.problemIds, problemId]
       } : s))
     );
   }, []);
 
   // Computed values
-  const activeProblems = problems.filter(p => p.status === 'active');
-  const reviewProblems = activeProblems.filter(p => p.isReview && p.nextReviewDate);
-  const reviewPotdProblems = potdProblems.filter(p => p.isReview && p.nextReviewDate);
+  const activeProblems = useMemo(() => problems.filter(p => p.status === 'active'), [problems]);
+  const reviewProblems = useMemo(() => activeProblems.filter(p => p.isReview && p.nextReviewDate), [activeProblems]);
+  const reviewPotdProblems = useMemo(() => potdProblems.filter(p => p.isReview && p.nextReviewDate), [potdProblems]);
 
-  const dueReviewCount = [...reviewProblems, ...reviewPotdProblems].filter(
+  const dueReviewCount = useMemo(() => [...reviewProblems, ...reviewPotdProblems].filter(
     p => p.nextReviewDate && new Date(p.nextReviewDate) <= new Date()
-  ).length;
+  ).length, [reviewProblems, reviewPotdProblems]);
 
   return {
     problems,
@@ -413,8 +389,7 @@ export const useProblems = () => {
     addSection,
     updateSection,
     deleteSection,
-    addProblemToSection,
     removeProblemFromSection,
-    addSubsection,
+    addProblemToSection,
   };
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -223,4 +223,4 @@ const Timer = ({ onTimeChange }: TimerProps) => {
   );
 };
 
-export default Timer;
+export default memo(Timer);

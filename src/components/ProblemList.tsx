@@ -62,19 +62,7 @@ interface ProblemListProps {
 
 // Helper function to get all subsections (flattened)
 const getAllSubsections = (sections: Section[]): Section[] => {
-  const subsections: Section[] = [];
-  
-  const traverseSections = (secs: Section[]) => {
-    secs.forEach(section => {
-      if (section.subsections && section.subsections.length > 0) {
-        subsections.push(...section.subsections);
-        traverseSections(section.subsections);
-      }
-    });
-  };
-  
-  traverseSections(sections);
-  return subsections;
+  return sections; // No subsections in current implementation
 };
 
 const ProblemList = memo(({ 
@@ -604,11 +592,6 @@ const ProblemList = memo(({
                                 {problem.isReview ? 'Unmark review' : 'Mark for review'}
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem onClick={() => setProblemToAddToSection(problem)}>
-                                <BookMarked className="mr-2 h-5 w-5" />
-                                {problem.inMasterSheet ? 'Remove from Master Sheet' : 'Add to Master Sheet'}
-                              </DropdownMenuItem>
-
                               <DropdownMenuItem onClick={() => setProblemToDelete(problem.id)}>
                                 <Trash2 className="mr-2 h-5 w-5" />
                                 Delete
@@ -688,8 +671,6 @@ const ProblemList = memo(({
                     if (problemToAddToSection && onAddProblemToSection) {
                       // Add problem to subsection
                       onAddProblemToSection(subsection.id, problemToAddToSection.id);
-                      // Mark problem as in master sheet
-                      onUpdateProblem(problemToAddToSection.id, { inMasterSheet: true });
                       setProblemToAddToSection(null);
                       toast.success(`Added to "${subsection.name}" subsection`);
                     }

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import Dashboard from './components/Dashboard';
 import ProblemForm from './components/ProblemForm';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -52,9 +52,8 @@ function App() {
     addSection,
     updateSection,
     deleteSection,
-    addProblemToSection,
     removeProblemFromSection,
-    addSubsection,
+    addProblemToSection,
   } = useProblems();
 
   // Achievements hook
@@ -88,11 +87,11 @@ function App() {
     }
   };
 
-  const currentLevelName = getLevelName(totalXp);
-  const nextLevelName = getLevelName(totalXp + 3000);
+  const currentLevelName = useMemo(() => getLevelName(totalXp), [totalXp]);
+  const nextLevelName = useMemo(() => getLevelName(totalXp + 3000), [totalXp]);
 
-  const getLevelColor = (xp: number) => {
-    const tier = Math.floor(xp / 3000);
+  const levelColor = useMemo(() => {
+    const tier = Math.floor(totalXp / 3000);
     switch (tier) {
       case 0:
         return 'text-gray-500';
@@ -113,7 +112,7 @@ function App() {
       default:
         return 'text-red-500';
     }
-  };
+  }, [totalXp]);
 
 
   return (
@@ -131,9 +130,9 @@ function App() {
                 </div>
 
                 <div className="absolute left-1/2 -translate-x-1/2 text-base font-semibold">
-                  <span className={getLevelColor(totalXp)}>{currentLevelName}</span>
+                  <span className={levelColor}>{currentLevelName}</span>
                   <span className="text-muted-foreground"> → </span>
-                  <span className={`${getLevelColor(totalXp + 3000)} animate-pulse drop-shadow`}>{nextLevelName}</span>
+                  <span className={`${levelColor} animate-pulse drop-shadow`}>{nextLevelName}</span>
                 </div>
 
                 <div className="ml-auto flex items-center space-x-4">
@@ -287,7 +286,6 @@ function App() {
                     onDeleteSection={deleteSection}
                     onRemoveProblemFromSection={removeProblemFromSection}
                     onUpdateProblem={updateProblem}
-                    onAddSubsection={addSubsection}
                   />
                 </Suspense>
               </TabsContent>

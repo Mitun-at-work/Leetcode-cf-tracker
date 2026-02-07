@@ -9,8 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Plus, Trash2, Edit, X, ChevronDown, ChevronRight, ExternalLink, CheckCircle, Circle, Search, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 
 interface SectionProps {
   section: Section;
@@ -20,8 +18,6 @@ interface SectionProps {
   onDeleteSection: (id: string) => void;
   onRemoveProblem: (sectionId: string, problemId: string) => void;
   onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
-  onAddSubsection?: (parentId: string, name: string) => void;
-  setSubsectionDialog: (dialog: { isOpen: boolean; parentId: string; name: string }) => void;
   isExpanded: boolean;
   editingSection: { id: string; name: string } | null;
   setEditingSection: (section: { id: string; name: string } | null) => void;
@@ -37,8 +33,6 @@ const Section = ({
   onDeleteSection,
   onRemoveProblem,
   onUpdateProblem,
-  onAddSubsection,
-  setSubsectionDialog,
   isExpanded,
   editingSection,
   setEditingSection,
@@ -96,10 +90,6 @@ const Section = ({
                       <Edit className="h-4 w-4 mr-2" />
                       Rename
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSubsectionDialog({ isOpen: true, parentId: section.id, name: '' })}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Subsection
-                    </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDeleteSection(section.id)}
                       className="text-red-600"
@@ -114,46 +104,44 @@ const Section = ({
       </CardHeader>
       {isExpanded && (
         <CardContent className="pt-0">
-          {/* Section Statistics - Only show for subsections (level > 0) */}
-          {level > 0 && (
-            <div className="flex items-center justify-between mb-4 p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{sectionProblems.length}</span>
-                  <span className="text-muted-foreground">problems</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="font-medium text-green-600">
-                    {sectionProblems.filter(p => p.status === 'learned').length}
-                  </span>
-                  <span className="text-muted-foreground">learned</span>
-                </div>
+          {/* Section Statistics */}
+          <div className="flex items-center justify-between mb-4 p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{sectionProblems.length}</span>
+                <span className="text-muted-foreground">problems</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Progress</span>
-                <div className="w-24">
-                  <Progress
-                    value={sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0}
-                    className="h-2"
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {Math.round(sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0)}%
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="font-medium text-green-600">
+                  {sectionProblems.filter(p => p.status === 'learned').length}
                 </span>
+                <span className="text-muted-foreground">learned</span>
               </div>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Progress</span>
+              <div className="w-24">
+                <Progress
+                  value={sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0}
+                  className="h-2"
+                />
+              </div>
+              <span className="text-sm font-medium">
+                {Math.round(sectionProblems.length > 0 ? (sectionProblems.filter(p => p.status === 'learned').length / sectionProblems.length) * 100 : 0)}%
+              </span>
+            </div>
+          </div>
 
-          {/* Show problems only for subsections (level > 0) */}
-          {level > 0 && sectionProblems.length === 0 ? (
+          {/* Show problems */}
+          {sectionProblems.length === 0 ? (
             <div className="text-center py-8">
               <Circle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No problems in this subsection yet.</p>
+              <p className="text-muted-foreground">No problems in this section yet.</p>
               <p className="text-sm text-muted-foreground/70 mt-1">Add problems to start tracking your progress!</p>
             </div>
-          ) : level > 0 && sectionProblems.length > 0 ? (
+          ) : (
             <div className="space-y-3">
               {sectionProblems.map((problem) => (
                 <div key={problem.id} className="group relative p-4 border rounded-lg bg-card hover:bg-muted/30 hover:border-muted-foreground/20 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -235,37 +223,6 @@ const Section = ({
                 </div>
               ))}
             </div>
-          ) : null}
-
-          {/* Subsections */}
-          {section.subsections && section.subsections.length > 0 && (
-            <div className="mt-6 pl-4 border-l-2 border-muted">
-              <div className="space-y-3">
-                {section.subsections.map((subsection) => (
-                  <Section
-                    key={subsection.id}
-                    section={subsection}
-                    problems={problems}
-                    onToggleExpansion={onToggleExpansion}
-                    onEditSection={() => {
-                      if (editingSection?.id === subsection.id) {
-                        onEditSection();
-                      }
-                    }}
-                    onDeleteSection={onDeleteSection}
-                    onRemoveProblem={onRemoveProblem}
-                    onUpdateProblem={onUpdateProblem}
-                    onAddSubsection={onAddSubsection}
-                    setSubsectionDialog={setSubsectionDialog}
-                    isExpanded={expandedSections.has(subsection.id)}
-                    editingSection={editingSection}
-                    setEditingSection={setEditingSection}
-                    level={level + 1}
-                    expandedSections={expandedSections}
-                  />
-                ))}
-              </div>
-            </div>
           )}
         </CardContent>
       )}
@@ -281,7 +238,6 @@ interface MasterSheetProps {
   onDeleteSection: (id: string) => void;
   onRemoveProblemFromSection: (sectionId: string, problemId: string) => void;
   onUpdateProblem?: (id: string, updates: Partial<Problem>) => void;
-  onAddSubsection?: (parentId: string, name: string) => void;
 }
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
@@ -316,31 +272,17 @@ const MasterSheet = ({
   onDeleteSection,
   onRemoveProblemFromSection,
   onUpdateProblem,
-  onAddSubsection,
 }: MasterSheetProps) => {
   const [newSectionName, setNewSectionName] = useState('');
   const [editingSection, setEditingSection] = useState<{ id: string; name: string } | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  const [subsectionDialog, setSubsectionDialog] = useState<{ isOpen: boolean; parentId: string; name: string }>({
-    isOpen: false,
-    parentId: '',
-    name: '',
-  });
 
   const handleAddSection = () => {
     if (newSectionName.trim()) {
       onAddSection(newSectionName.trim());
       setNewSectionName('');
       toast.success('Section added successfully!');
-    }
-  };
-
-  const handleAddSubsection = () => {
-    if (subsectionDialog.name.trim() && onAddSubsection) {
-      onAddSubsection(subsectionDialog.parentId, subsectionDialog.name.trim());
-      setSubsectionDialog({ isOpen: false, parentId: '', name: '' });
-      toast.success('Subsection added successfully!');
     }
   };
 
@@ -358,16 +300,8 @@ const MasterSheet = ({
   };
 
   const handleRemoveProblem = (sectionId: string, problemId: string) => {
-    if (sectionId.startsWith('topic-')) {
-      // For automatic topic sections, remove from master sheet
-      if (onUpdateProblem) {
-        onUpdateProblem(problemId, { inMasterSheet: false });
-        toast.success('Problem removed from master sheet!');
-      }
-    } else {
-      onRemoveProblemFromSection(sectionId, problemId);
-      toast.success('Problem removed from section!');
-    }
+    onRemoveProblemFromSection(sectionId, problemId);
+    toast.success('Problem removed from section!');
   };
 
   const toggleSectionExpansion = (sectionId: string) => {
@@ -546,11 +480,9 @@ const MasterSheet = ({
                 onDeleteSection={handleDeleteSection}
                 onRemoveProblem={handleRemoveProblem}
                 onUpdateProblem={onUpdateProblem}
-                onAddSubsection={onAddSubsection}
                 isExpanded={isExpanded}
                 editingSection={editingSection}
                 setEditingSection={setEditingSection}
-                setSubsectionDialog={setSubsectionDialog}
                 expandedSections={expandedSections}
               />
             );
@@ -558,48 +490,6 @@ const MasterSheet = ({
         </div>
       )}
 
-      {/* Subsection Creation Dialog */}
-      <Dialog open={subsectionDialog.isOpen} onOpenChange={(open) => setSubsectionDialog({ ...subsectionDialog, isOpen: open })}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Subsection</DialogTitle>
-            <DialogDescription>
-              Enter a name for the new subsection.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="subsection-name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="subsection-name"
-                value={subsectionDialog.name}
-                onChange={(e) => setSubsectionDialog({ ...subsectionDialog, name: e.target.value })}
-                className="col-span-3"
-                placeholder="Enter subsection name..."
-                onKeyPress={(e) => e.key === 'Enter' && handleAddSubsection()}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSubsectionDialog({ isOpen: false, parentId: '', name: '' })}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleAddSubsection}
-              disabled={!subsectionDialog.name.trim()}
-            >
-              Create Subsection
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

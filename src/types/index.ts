@@ -16,7 +16,6 @@ export interface Problem {
   topics: string[];
   status: 'active' | 'learned';
   companies: string[];
-  inMasterSheet?: boolean;
   toSolve?: boolean;
 }
 
@@ -24,8 +23,6 @@ export interface Section {
   id: string;
   name: string;
   problemIds: string[];
-  subsections?: Section[];
-  parentId?: string;
 }
 
 export interface PlatformStats {
@@ -208,7 +205,6 @@ export interface AchievementStats {
   platformCounts: Record<string, number>;
   difficultyCounts: Record<string, number>;
   topicCounts: Record<string, number>;
-  mastersheetCount: number;
   reviewCount: number;
   learnedCount: number;
   xp: number;

@@ -138,8 +138,6 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             id: s?.id || crypto.randomUUID(),
             name: s?.name || 'Unnamed Section',
             problemIds: Array.isArray(s?.problemIds) ? s.problemIds : [],
-            subsections: Array.isArray(s?.subsections) ? s.subsections.map(normalizeSection) : undefined,
-            parentId: s?.parentId,
           });
 
           await StorageService.saveProblems(problems.map(normalizeProblem));

@@ -16,7 +16,6 @@ export const useAchievements = (problems: Problem[]) => {
     const totalProblems = problems.length;
     const learnedCount = problems.filter(p => p.status === 'learned').length;
     const reviewCount = problems.filter(p => p.isReview).length;
-    const mastersheetCount = problems.filter(p => p.inMasterSheet).length;
 
     // Platform counts
     const platformCounts = problems.reduce((acc, p) => {
@@ -125,7 +124,6 @@ export const useAchievements = (problems: Problem[]) => {
       platformCounts,
       difficultyCounts,
       topicCounts,
-      mastersheetCount,
       reviewCount,
       learnedCount,
       xp,

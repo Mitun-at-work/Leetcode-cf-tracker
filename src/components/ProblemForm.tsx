@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import type { Problem } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -264,4 +264,4 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddT
   );
 };
 
-export default ProblemForm;
+export default memo(ProblemForm);
