@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Pen, Eraser, RotateCcw, Download, Upload, Maximize2, Minimize2 } from 'lucide-react';
+import { Pen, Eraser, RotateCcw, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +9,6 @@ const DrawingBoardPage = () => {
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [color, setColor] = useState<'black' | 'red'>('black');
   const [lineWidth, setLineWidth] = useState(2);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -48,9 +47,51 @@ const DrawingBoardPage = () => {
     ctx.stroke();
   }, [isDrawing, tool, color, lineWidth]);
 
+  // Save canvas drawing to localStorage
+  const saveCanvasToStorage = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      const dataURL = canvas.toDataURL();
+      localStorage.setItem('drawing-board-canvas', dataURL);
+    } catch (error) {
+      console.warn('Failed to save canvas to localStorage:', error);
+    }
+  }, []);
+
   const stopDrawing = useCallback(() => {
     setIsDrawing(false);
-  }, []);
+    // Save canvas after drawing
+    setTimeout(saveCanvasToStorage, 10);
+  }, [saveCanvasToStorage]);
+
+  // Load saved state on component mount
+
+  // Save tool settings to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('drawing-board-tool', tool);
+    } catch (error) {
+      console.warn('Failed to save tool to localStorage:', error);
+    }
+  }, [tool]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('drawing-board-color', color);
+    } catch (error) {
+      console.warn('Failed to save color to localStorage:', error);
+    }
+  }, [color]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('drawing-board-line-width', lineWidth.toString());
+    } catch (error) {
+      console.warn('Failed to save line width to localStorage:', error);
+    }
+  }, [lineWidth]);
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -63,7 +104,10 @@ const DrawingBoardPage = () => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     toast.success('Canvas cleared!');
-  }, []);
+    
+    // Save cleared canvas
+    setTimeout(saveCanvasToStorage, 10);
+  }, [saveCanvasToStorage]);
 
   const exportDrawing = useCallback(() => {
     const canvas = canvasRef.current;
@@ -93,12 +137,15 @@ const DrawingBoardPage = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         toast.success('Drawing imported!');
+        
+        // Save imported drawing
+        setTimeout(saveCanvasToStorage, 10);
       };
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  }, []);
+  }, [saveCanvasToStorage]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -168,7 +215,7 @@ const DrawingBoardPage = () => {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+      <div className="flex flex-wrap items-center gap-2 p-4 rounded-lg border">
         {/* Drawing Tools */}
         <div className="flex items-center gap-1">
           <Button

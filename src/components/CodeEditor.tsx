@@ -1,10 +1,12 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Code, Play, RotateCcw, Clock, Pause, Copy, Square } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Code, Play, RotateCcw, Copy, Square, Maximize2, Minimize2, Sun, Moon, Settings, CheckCircle, XCircle, Clock, MemoryStick } from 'lucide-react';
 
 interface CodeEditorProps {
   value?: string;
@@ -17,6 +19,14 @@ interface CodeEditorProps {
   onCopy?: () => void;
   height?: string;
   isExecuting?: boolean;
+  testInput?: string;
+  onTestInputChange?: (value: string) => void;
+  testOutput?: string;
+  onTestOutputChange?: (value: string) => void;
+  consoleOutput?: string;
+  executionTime?: number;
+  memoryUsage?: number;
+  testResults?: Array<{ passed: boolean; input: string; expected: string; actual: string }>;
 }
 
 const SUPPORTED_LANGUAGES = [
@@ -24,159 +34,170 @@ const SUPPORTED_LANGUAGES = [
 ];
 
 const DEFAULT_CODE = {
-  cpp: `#include <iostream>
+  cpp: `#include <bits/stdc++.h>
 using namespace std;
 
+class Solution {
+public:
+    void solve() {
+        // Write your solution here
+        cout << "Hello, World!" << endl;
+    }
+};
+
 int main() {
-    // Write your solution here
-    cout << "Hello, World!" << endl;
+    Solution solution;
+    solution.solve();
     return 0;
+}`,
+  java: `public class Solution {
+    public void solve() {
+        // Write your solution here
+        System.out.println("Hello, World!");
+    }
+
+    public static void main(String[] args) {
+        Solution solution = new Solution();
+        solution.solve();
+    }
+}`,
+  python: `class Solution:
+    def solve(self):
+        # Write your solution here
+        print("Hello, World!")
+
+if __name__ == "__main__":
+    solution = Solution()
+    solution.solve()`,
+  javascript: `class Solution {
+    solve() {
+        // Write your solution here
+        console.log("Hello, World!");
+    }
+}
+
+// Test the solution
+const solution = new Solution();
+solution.solve();`,
+  csharp: `public class Solution {
+    public void Solve() {
+        // Write your solution here
+        Console.WriteLine("Hello, World!");
+    }
+}
+
+class Program {
+    static void Main(string[] args) {
+        Solution solution = new Solution();
+        solution.Solve();
+    }
+}`,
+  typescript: `class Solution {
+    solve(): void {
+        // Write your solution here
+        console.log("Hello, World!");
+    }
+}
+
+// Test the solution
+const solution = new Solution();
+solution.solve();`,
+  go: `package main
+
+type Solution struct{}
+
+func (s *Solution) Solve() {
+    // Write your solution here
+    fmt.Println("Hello, World!")
+}
+
+func main() {
+    solution := &Solution{}
+    solution.Solve()
+}`,
+  rust: `struct Solution;
+
+impl Solution {
+    pub fn solve() {
+        // Write your solution here
+        println!("Hello, World!");
+    }
+}
+
+fn main() {
+    Solution::solve();
+}`,
+  php: `<?php
+
+class Solution {
+    public function solve() {
+        // Write your solution here
+        echo "Hello, World!";
+    }
+}
+
+// Test the solution
+$solution = new Solution();
+$solution->solve();
+
+?>`,
+  ruby: `class Solution
+    def solve
+        # Write your solution here
+        puts "Hello, World!"
+    end
+end
+
+# Test the solution
+solution = Solution.new
+solution.solve`,
+  swift: `class Solution {
+    func solve() {
+        // Write your solution here
+        print("Hello, World!")
+    }
+}
+
+let solution = Solution()
+solution.solve()`,
+  kotlin: `class Solution {
+    fun solve() {
+        // Write your solution here
+        println("Hello, World!")
+    }
+}
+
+fun main() {
+    val solution = Solution()
+    solution.solve()
 }`,
 };
 
 const CodeEditor = ({
   value,
   onChange,
-  language = 'javascript',
+  language = 'cpp',
   onLanguageChange,
   onRun,
   onStop,
   onReset,
   onCopy,
   height = '400px',
-  isExecuting = false
+  isExecuting = false,
+  testInput = '',
+  onTestInputChange,
+  testOutput = '',
+  onTestOutputChange,
+  consoleOutput = '',
+  executionTime,
+  memoryUsage,
+  testResults = []
 }: CodeEditorProps) => {
   const editorRef = useRef<any>(null);
-
-  // Timer state
-  const [minutes, setMinutes] = useState(30);
-  const [seconds, setSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [totalSeconds, setTotalSeconds] = useState(30 * 60);
-  const lastTenMinuteMark = useRef<number | null>(null);
-
-  // Function to play a beep sound
-  const playBeep = useCallback((frequency: number = 800, duration: number = 200) => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + duration / 1000);
-    } catch (error) {
-      console.warn('Audio playback failed:', error);
-      // Fallback: try to play a system beep or notification sound
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Timer Alert', { body: '10 minutes passed!' });
-      }
-    }
-  }, []);
-
-  // Function to check for 10-minute intervals
-  const checkTenMinuteInterval = useCallback((currentSeconds: number) => {
-    const currentMinutes = Math.floor(currentSeconds / 60);
-    const lastMark = lastTenMinuteMark.current;
-
-    // Check if we've crossed a 10-minute boundary
-    if (lastMark === null || currentMinutes < lastMark) {
-      // Reset when timer is reset or restarted
-      lastTenMinuteMark.current = Math.floor(currentSeconds / 600) * 10;
-    } else {
-      const currentTenMinuteMark = Math.floor(currentMinutes / 10) * 10;
-      if (currentTenMinuteMark !== lastMark && currentTenMinuteMark > 0) {
-        // We've reached a new 10-minute mark
-        playBeep(800, 300); // Longer beep for 10-minute intervals
-        lastTenMinuteMark.current = currentTenMinuteMark;
-
-        // Also show a notification if possible
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Timer Update', {
-            body: `${currentTenMinuteMark} minutes remaining!`,
-            icon: '/favicon.ico'
-          });
-        }
-      }
-    }
-  }, [playBeep]);
-
-  const formatTime = useCallback((totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }, []);
-
-  const resetTimer = useCallback(() => {
-    setIsRunning(false);
-    setTotalSeconds(minutes * 60 + seconds);
-    lastTenMinuteMark.current = null; // Reset the 10-minute mark tracking
-  }, [minutes, seconds]);
-
-  const startTimer = useCallback(() => {
-    setIsRunning(true);
-  }, []);
-
-  const pauseTimer = useCallback(() => {
-    setIsRunning(false);
-  }, []);
-
-  const handleMinutesChange = useCallback((value: string) => {
-    const numValue = parseInt(value) || 0;
-    setMinutes(Math.max(0, Math.min(99, numValue)));
-  }, []);
-
-  const handleSecondsChange = useCallback((value: string) => {
-    const numValue = parseInt(value) || 0;
-    setSeconds(Math.max(0, Math.min(59, numValue)));
-  }, []);
-
-  // Request notification permission on component mount
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isRunning && totalSeconds > 0) {
-      interval = setInterval(() => {
-        setTotalSeconds(prev => {
-          const newTime = prev - 1;
-
-          // Check for 10-minute intervals
-          checkTenMinuteInterval(newTime);
-
-          if (newTime <= 0) {
-            setIsRunning(false);
-            // Play final alarm sound when timer reaches zero
-            playBeep(1000, 1000); // Higher pitch, longer duration for final alarm
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('Timer Finished!', {
-                body: 'Time\'s up! Your practice session has ended.',
-                icon: '/favicon.ico'
-              });
-            }
-          }
-          return newTime;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, totalSeconds, checkTenMinuteInterval, playBeep]);
+  const [activeTab, setActiveTab] = useState('code');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [fontSize, setFontSize] = useState(16);
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
@@ -184,7 +205,6 @@ const CodeEditor = ({
 
   const handleLanguageChange = (newLanguage: string) => {
     onLanguageChange?.(newLanguage);
-    // Set default code for the new language if no value is provided
     if (!value && DEFAULT_CODE[newLanguage as keyof typeof DEFAULT_CODE]) {
       onChange?.(DEFAULT_CODE[newLanguage as keyof typeof DEFAULT_CODE]);
     }
@@ -197,83 +217,27 @@ const CodeEditor = ({
     onReset?.();
   };
 
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Code className="h-5 w-5" />
-            Code Editor
-          </CardTitle>
-          <div className="flex items-center gap-4">
-            {/* Timer Section */}
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <div className="flex items-center gap-1">
-                <div
-                  className={`text-lg font-mono font-bold min-w-[60px] ${
-                    totalSeconds === 0 ? 'text-red-500' : totalSeconds <= 300 ? 'text-orange-500' : 'text-green-500'
-                  }`}
-                >
-                  {formatTime(totalSeconds)}
-                </div>
-                {!isRunning && totalSeconds > 0 && (
-                  <div className="flex gap-1">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="99"
-                      value={minutes}
-                      onChange={(e) => handleMinutesChange(e.target.value)}
-                      className="w-12 h-6 text-xs text-center p-1"
-                      placeholder="M"
-                    />
-                    <span className="text-xs">:</span>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="59"
-                      value={seconds}
-                      onChange={(e) => handleSecondsChange(e.target.value)}
-                      className="w-12 h-6 text-xs text-center p-1"
-                      placeholder="S"
-                    />
-                  </div>
-                )}
-                <div className="flex gap-1">
-                  {!isRunning ? (
-                    <Button
-                      onClick={startTimer}
-                      disabled={totalSeconds === 0}
-                      size="sm"
-                      variant="outline"
-                      className="h-6 px-2"
-                    >
-                      <Play className="h-3 w-3" />
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={pauseTimer}
-                      size="sm"
-                      variant="outline"
-                      className="h-6 px-2"
-                    >
-                      <Pause className="h-3 w-3" />
-                    </Button>
-                  )}
-                  <Button
-                    onClick={resetTimer}
-                    size="sm"
-                    variant="outline"
-                    className="h-6 px-2"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
 
-            {/* Language and Action Buttons */}
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const increaseFontSize = () => {
+    setFontSize(prev => Math.min(prev + 2, 24));
+  };
+
+  const decreaseFontSize = () => {
+    setFontSize(prev => Math.max(prev - 2, 10));
+  };
+
+  return (
+    <Card className={`w-full ${isFullscreen ? 'fixed inset-4 z-50' : ''}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-end">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Select value={language} onValueChange={handleLanguageChange}>
                 <SelectTrigger className="w-32">
@@ -287,52 +251,152 @@ const CodeEditor = ({
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={onCopy} variant="outline" size="sm">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-              {isExecuting ? (
-                <Button onClick={onStop} variant="destructive" size="sm">
-                  <Square className="h-4 w-4 mr-2" />
-                  Stop
-                </Button>
-              ) : (
-                <Button onClick={onRun} variant="outline" size="sm">
-                  <Play className="h-4 w-4 mr-2" />
-                  Run
-                </Button>
-              )}
-              <Button onClick={handleReset} variant="outline" size="sm">
-                <RotateCcw className="h-4 w-4" />
-              </Button>
             </div>
+            <Button onClick={decreaseFontSize} variant="outline" size="sm">
+              A-
+            </Button>
+            <Button onClick={increaseFontSize} variant="outline" size="sm">
+              A+
+            </Button>
+            <Button onClick={toggleTheme} variant="outline" size="sm">
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button onClick={toggleFullscreen} variant="outline" size="sm">
+              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            <Button onClick={onCopy} variant="outline" size="sm">
+              <Copy className="h-4 w-4" />
+            </Button>
+            {isExecuting ? (
+              <Button onClick={onStop} variant="destructive" size="sm">
+                <Square className="h-4 w-4 mr-2" />
+                Stop
+              </Button>
+            ) : (
+              <Button onClick={onRun} variant="outline" size="sm">
+                <Play className="h-4 w-4 mr-2" />
+                Run
+              </Button>
+            )}
+            <Button onClick={handleReset} variant="outline" size="sm">
+              <RotateCcw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div style={{ height }}>
-          <Editor
-            height="100%"
-            language={language}
-            value={value}
-            onChange={onChange}
-            onMount={handleEditorDidMount}
-            theme="vs-dark"
-            options={{
-              minimap: { enabled: false },
-              fontSize: 20,
-              lineNumbers: 'on',
-              roundedSelection: false,
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              tabSize: 2,
-              insertSpaces: true,
-              wordWrap: 'on',
-              folding: true,
-              lineDecorationsWidth: 10,
-              lineNumbersMinChars: 3,
-            }}
-          />
+      <CardContent className="p-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mx-4 mt-4">
+            <TabsTrigger value="code" className="flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              Code
+            </TabsTrigger>
+            <TabsTrigger value="testcase" className="flex items-center gap-2">
+              Testcase
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="code" className="m-0">
+            <div style={{ height: isFullscreen ? 'calc(100vh - 200px)' : height }}>
+              <Editor
+                height="100%"
+                language={language}
+                value={value}
+                onChange={onChange}
+                onMount={handleEditorDidMount}
+                theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize,
+                  lineNumbers: 'on',
+                  roundedSelection: false,
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  tabSize: 4,
+                  insertSpaces: true,
+                  wordWrap: 'on',
+                  folding: true,
+                  lineDecorationsWidth: 10,
+                  lineNumbersMinChars: 3,
+                  matchBrackets: 'always',
+                  autoClosingBrackets: 'always',
+                  suggestOnTriggerCharacters: true,
+                  acceptSuggestionOnEnter: 'on',
+                  quickSuggestions: true,
+                  hover: { enabled: true },
+                }}
+              />
+            </div>
+          </TabsContent>
+          <TabsContent value="testcase" className="m-0">
+            <div className="grid grid-cols-2 gap-4 p-4" style={{ height: isFullscreen ? 'calc(100vh - 200px)' : height }}>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Input</h3>
+                  <Badge variant="outline">stdin</Badge>
+                </div>
+                <Textarea
+                  value={testInput}
+                  onChange={(e) => onTestInputChange?.(e.target.value)}
+                  placeholder="Enter test input..."
+                  className="h-full resize-none font-mono text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Expected Output</h3>
+                  <Badge variant="outline">stdout</Badge>
+                </div>
+                <Textarea
+                  value={testOutput}
+                  onChange={(e) => onTestOutputChange?.(e.target.value)}
+                  placeholder="Enter expected output..."
+                  className="h-full resize-none font-mono text-sm"
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Test Results and Console */}
+        <div className="border-t p-4 space-y-4">
+          {/* Test Results */}
+          {testResults.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Test Results</h3>
+              <div className="space-y-2">
+                {testResults.map((result, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 rounded border">
+                    {result.passed ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className="text-sm">Test Case {index + 1}</span>
+                    {executionTime && (
+                      <Badge variant="outline" className="ml-auto flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {executionTime}ms
+                      </Badge>
+                    )}
+                    {memoryUsage && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <MemoryStick className="h-3 w-3" />
+                        {memoryUsage}MB
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Console Output */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Console</h3>
+            <div className="bg-muted p-3 rounded font-mono text-sm max-h-32 overflow-y-auto border">
+              {consoleOutput || 'No output yet. Click "Run" to execute your code.'}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

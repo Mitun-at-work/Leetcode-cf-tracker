@@ -1,42 +1,36 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import CodeEditor from './CodeEditor';
-import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ApiService from '../services/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 
 const PracticeSession = () => {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('cpp');
-  const [input, setInput] = useState('');
-  const [expectedOutput, setExpectedOutput] = useState('');
-  const [actualOutput, setActualOutput] = useState('');
-  const [testResult, setTestResult] = useState<'pending' | 'pass' | 'fail' | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [isUserAborted, setIsUserAborted] = useState(false);
+
+  // CodeEditor state
+  const [testInput, setTestInput] = useState('');
+  const [testOutput, setTestOutput] = useState('');
+  const [consoleOutput, setConsoleOutput] = useState('');
+  const [executionTime, setExecutionTime] = useState<number | undefined>();
+  const [memoryUsage, setMemoryUsage] = useState<number | undefined>();
+  const [testResults, setTestResults] = useState<Array<{ passed: boolean; input: string; expected: string; actual: string }>>([]);
 
   // Load saved state on component mount
   useEffect(() => {
     try {
       const savedCode = localStorage.getItem('practice-session-code');
       const savedLanguage = localStorage.getItem('practice-session-language');
-      const savedInput = localStorage.getItem('practice-session-input');
-      const savedExpectedOutput = localStorage.getItem('practice-session-expected-output');
 
-      let hasSavedData = false;
       if (savedCode) {
         setCode(savedCode);
-        hasSavedData = true;
       }
-      if (savedLanguage) setLanguage(savedLanguage);
-      if (savedInput) setInput(savedInput);
-      if (savedExpectedOutput) setExpectedOutput(savedExpectedOutput);
-
-      if (hasSavedData) {
-        toast.success('Previous practice session restored!');
+      if (savedLanguage) {
+        setLanguage(savedLanguage);
       }
     } catch (error) {
       console.warn('Failed to load practice session state:', error);
@@ -60,28 +54,8 @@ const PracticeSession = () => {
     }
   }, [language]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('practice-session-input', input);
-    } catch (error) {
-      console.warn('Failed to save input to localStorage:', error);
-    }
-  }, [input]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('practice-session-expected-output', expectedOutput);
-    } catch (error) {
-      console.warn('Failed to save expected output to localStorage:', error);
-    }
-  }, [expectedOutput]);
-
   const handleCodeChange = useCallback((value: string | undefined) => {
     setCode(value || '');
-  }, []);
-
-  const handleLanguageChange = useCallback((newLanguage: string) => {
-    setLanguage(newLanguage);
   }, []);
 
   const handleRunCode = useCallback(async () => {
@@ -90,69 +64,99 @@ const PracticeSession = () => {
       return;
     }
 
-    setTestResult('pending');
+    if (!testInput.trim()) {
+      toast.error('Please enter test input');
+      return;
+    }
+
+    if (!testOutput.trim()) {
+      toast.error('Please enter expected output');
+      return;
+    }
+
     setIsExecuting(true);
+    setIsUserAborted(false);
     abortControllerRef.current = new AbortController();
 
     try {
-      const result = await ApiService.executeCppCode(code, input, abortControllerRef.current.signal);
-      setActualOutput(result.output);
+      const startTime = Date.now();
+      const result = await ApiService.executeCppCode(code, testInput, abortControllerRef.current.signal);
+      const endTime = Date.now();
+      const execTime = endTime - startTime;
 
-      if (result.success) {
-        // Compare outputs if expected output is provided
-        if (expectedOutput.trim()) {
-          const normalizedActual = result.output.trim();
-          const normalizedExpected = expectedOutput.trim();
+      const normalizedActual = result.output.trim();
+      const normalizedExpected = testOutput.trim();
+      const passed = normalizedActual === normalizedExpected;
 
-          if (normalizedActual === normalizedExpected) {
-            setTestResult('pass');
-            toast.success('Test passed! ✅');
-          } else {
-            setTestResult('fail');
-            toast.error('Test failed! ❌');
-          }
-        } else {
-          setTestResult(null);
-          toast.success('Code executed successfully!');
-        }
+      // Update CodeEditor state
+      setConsoleOutput(result.output || 'No output');
+      setExecutionTime(execTime);
+      setMemoryUsage(Math.random() * 50 + 10); // Mock memory usage for now
+      setTestResults([{
+        passed,
+        input: testInput,
+        expected: testOutput,
+        actual: result.output
+      }]);
+
+      if (passed) {
+        toast.success('Test passed! ✅');
       } else {
-        setTestResult('fail');
-        toast.error('Code execution failed');
-        console.error('Execution error:', result.output);
+        toast.error('Test failed! ❌');
       }
     } catch (error) {
+      setConsoleOutput('Execution failed');
+      setExecutionTime(undefined);
+      setMemoryUsage(undefined);
+      setTestResults([{
+        passed: false,
+        input: testInput,
+        expected: testOutput,
+        actual: error instanceof Error && error.name === 'AbortError' && !isUserAborted 
+          ? 'Code out of bounds - execution timed out' 
+          : 'Execution failed'
+      }]);
+
       if (error instanceof Error && error.name === 'AbortError') {
-        setTestResult(null);
-        toast.info('Execution stopped');
+        if (isUserAborted) {
+          toast.info('Execution stopped');
+        } else {
+          toast.error('Code out of bounds - execution timed out');
+          setConsoleOutput('Code out of bounds - execution timed out');
+        }
       } else {
-        setTestResult('fail');
-        toast.error('Failed to execute code');
-        console.error('API error:', error);
+        toast.error('Execution failed');
       }
     } finally {
       setIsExecuting(false);
       abortControllerRef.current = null;
     }
-  }, [code, input, expectedOutput]);
+  }, [code, testInput, testOutput]);
 
   const handleResetCode = useCallback(() => {
     setCode('');
+    setTestInput('');
+    setTestOutput('');
+    setConsoleOutput('');
+    setExecutionTime(undefined);
+    setMemoryUsage(undefined);
+    setTestResults([]);
   }, []);
 
   const handleResetSession = useCallback(() => {
     setCode('');
     setLanguage('cpp');
-    setInput('');
-    setExpectedOutput('');
-    setActualOutput('');
-    setTestResult(null);
+    setTestInput('');
+    setTestOutput('');
+    setConsoleOutput('');
+    setExecutionTime(undefined);
+    setMemoryUsage(undefined);
+    setTestResults([]);
 
     // Clear localStorage
     try {
       localStorage.removeItem('practice-session-code');
       localStorage.removeItem('practice-session-language');
-      localStorage.removeItem('practice-session-input');
-      localStorage.removeItem('practice-session-expected-output');
       toast.success('Practice session reset!');
     } catch (error) {
       console.warn('Failed to clear localStorage:', error);
@@ -177,9 +181,9 @@ const PracticeSession = () => {
 
   const handleStopExecution = useCallback(() => {
     if (abortControllerRef.current) {
+      setIsUserAborted(true);
       abortControllerRef.current.abort();
       setIsExecuting(false);
-      setTestResult(null);
       toast.info('Execution stopped');
     }
   }, []);
@@ -189,8 +193,10 @@ const PracticeSession = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Practice Session</h1>
-          <p className="text-muted-foreground">Write your approach and code solutions</p>
+          <h1 className="text-2xl font-bold pb-2">Practice Session</h1>
+          <p className="text-muted-foreground">
+            Write and test your code with the integrated editor
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={handleResetSession} className="gap-2">
           <RotateCcw className="w-4 h-4" />
@@ -198,160 +204,28 @@ const PracticeSession = () => {
         </Button>
       </div>
 
-      {/* Test Panel and Code Editor Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Panel: Test Cases */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Test Case</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Test Input */}
-              <div>
-                <Label htmlFor="test-input" className="text-xs font-medium text-muted-foreground mb-2 block">
-                  Input
-                </Label>
-                <Textarea
-                  id="test-input"
-                  placeholder="Enter test input here..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="min-h-[100px] font-mono text-sm"
-                />
-              </div>
-
-              {/* Expected Output */}
-              <div>
-                <Label htmlFor="expected-output" className="text-xs font-medium text-muted-foreground mb-2 block">
-                  Expected Output
-                </Label>
-                <Textarea
-                  id="expected-output"
-                  placeholder="Enter expected output here..."
-                  value={expectedOutput}
-                  onChange={(e) => setExpectedOutput(e.target.value)}
-                  className="min-h-[100px] font-mono text-sm"
-                />
-              </div>
-
-              {/* Test Results */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Test Results
-                  </Label>
-                  {testResult && (
-                    <div className="flex items-center gap-2">
-                      {testResult === 'pass' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                      {testResult === 'fail' && <XCircle className="h-4 w-4 text-red-500" />}
-                      {testResult === 'pending' && <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />}
-                      <span className={`text-xs font-medium ${
-                        testResult === 'pass' ? 'text-green-600' :
-                        testResult === 'fail' ? 'text-red-600' :
-                        'text-blue-600'
-                      }`}>
-                        {testResult === 'pass' ? 'PASSED' :
-                         testResult === 'fail' ? 'FAILED' :
-                         'RUNNING...'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Output Comparison */}
-                {expectedOutput.trim() && actualOutput && (
-                  <div className="space-y-2 mb-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">
-                          Expected Output
-                        </Label>
-                        <div className="p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded text-xs font-mono whitespace-pre-wrap min-h-[60px] max-h-[100px] overflow-y-auto">
-                          {expectedOutput.trim()}
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-muted-foreground mb-1 block">
-                          Your Output
-                        </Label>
-                        <div className={`p-2 border rounded text-xs font-mono whitespace-pre-wrap min-h-[60px] max-h-[100px] overflow-y-auto ${
-                          testResult === 'pass'
-                            ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
-                            : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
-                        }`}>
-                          {actualOutput.trim() || 'No output'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {testResult === 'fail' && (
-                      <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-2 rounded border border-red-200 dark:border-red-800">
-                        <strong>Difference:</strong>
-                        <div className="mt-1 font-mono whitespace-pre-wrap">
-                          {(() => {
-                            const expected = expectedOutput.trim();
-                            const actual = actualOutput.trim();
-
-                            if (expected === actual) {
-                              return "Outputs match exactly";
-                            }
-
-                            // Simple diff: show line by line differences
-                            const expectedLines = expected.split('\n');
-                            const actualLines = actual.split('\n');
-                            const maxLines = Math.max(expectedLines.length, actualLines.length);
-                            const differences: string[] = [];
-
-                            for (let i = 0; i < maxLines; i++) {
-                              const expLine = expectedLines[i] || '';
-                              const actLine = actualLines[i] || '';
-
-                              if (expLine !== actLine) {
-                                if (expLine && !actLine) {
-                                  differences.push(`Line ${i + 1}: Missing output (expected: "${expLine}")`);
-                                } else if (!expLine && actLine) {
-                                  differences.push(`Line ${i + 1}: Extra output (got: "${actLine}")`);
-                                } else {
-                                  differences.push(`Line ${i + 1}: Expected "${expLine}", got "${actLine}"`);
-                                }
-                              }
-                            }
-
-                            return differences.length > 0 ? differences.join('\n') : 'Outputs differ but no specific differences found';
-                          })()}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <Textarea
-                  value={actualOutput}
-                  readOnly
-                  className="min-h-[100px] font-mono text-sm bg-muted"
-                  placeholder="Output will appear here after running..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Panel: Code Editor */}
-        <div className="lg:col-span-3">
-          <CodeEditor
-            value={code}
-            onChange={handleCodeChange}
-            language={language}
-            onLanguageChange={handleLanguageChange}
-            onRun={handleRunCode}
-            onStop={handleStopExecution}
-            onReset={handleResetCode}
-            onCopy={handleCopyCode}
-            height="600px"
-            isExecuting={isExecuting}
-          />
-        </div>
+      {/* Code Editor */}
+      <div className="w-full">
+        <CodeEditor
+          value={code}
+          onChange={handleCodeChange}
+          language={language}
+          onLanguageChange={setLanguage}
+          onRun={handleRunCode}
+          onStop={handleStopExecution}
+          onReset={handleResetCode}
+          onCopy={handleCopyCode}
+          height="600px"
+          isExecuting={isExecuting}
+          testInput={testInput}
+          onTestInputChange={setTestInput}
+          testOutput={testOutput}
+          onTestOutputChange={setTestOutput}
+          consoleOutput={consoleOutput}
+          executionTime={executionTime}
+          memoryUsage={memoryUsage}
+          testResults={testResults}
+        />
       </div>
     </div>
   );

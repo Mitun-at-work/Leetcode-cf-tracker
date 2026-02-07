@@ -1,0 +1,176 @@
+import { useRef, useState } from 'react';
+import Editor from '@monaco-editor/react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import {
+  Code,
+  Play,
+  RotateCcw,
+  Copy,
+  Square,
+  Maximize2,
+  Minimize2,
+  Settings,
+  TestTube,
+  Terminal,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Zap
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+interface CodeEditorProps {
+  value?: string;
+  onChange?: (value: string | undefined) => void;
+  language?: string;
+  onLanguageChange?: (language: string) => void;
+  onRun?: () => void;
+  onStop?: () => void;
+  onReset?: () => void;
+  onCopy?: () => void;
+  height?: string;
+  isExecuting?: boolean;
+  testCases?: Array<{
+    id: string;
+    input: string;
+    expectedOutput: string;
+    result?: 'pending' | 'pass' | 'fail';
+    actualOutput?: string;
+    executionTime?: number;
+  }>;
+  currentTestCase?: {
+    id: string;
+    input: string;
+    expectedOutput: string;
+    result?: 'pending' | 'pass' | 'fail';
+    actualOutput?: string;
+  };
+  onTestCaseSelect?: (testCase: {
+    id: string;
+    input: string;
+    expectedOutput: string;
+    result?: 'pending' | 'pass' | 'fail';
+    actualOutput?: string;
+  }) => void;
+  executionOutput?: string;
+  executionTime?: number;
+  memoryUsage?: number;
+}
+
+const SUPPORTED_LANGUAGES = [
+  { value: 'cpp', label: 'C++' },
+  { value: 'python', label: 'Python' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'java', label: 'Java' },
+  { value: 'csharp', label: 'C#' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'php', label: 'PHP' },
+  { value: 'ruby', label: 'Ruby' },
+  { value: 'swift', label: 'Swift' },
+  { value: 'kotlin', label: 'Kotlin' },
+];
+
+const DEFAULT_CODE = {
+  cpp: 'cout << "Hello World" << endl;',
+  python: 'print("Hello World")',
+  javascript: 'console.log("Hello World");',
+  java: 'System.out.println("Hello World");',
+  csharp: 'Console.WriteLine("Hello World");',
+  go: 'fmt.Println("Hello World")',
+  rust: 'println!("Hello World");',
+  typescript: 'console.log("Hello World");',
+  php: 'echo "Hello World";',
+  ruby: 'puts "Hello World"',
+  swift: 'print("Hello World")',
+  kotlin: 'println("Hello World")'
+};
+
+const CodeEditor = ({
+  value,
+  onChange,
+  language = 'cpp',
+  onLanguageChange,
+  onRun,
+  onStop,
+  onReset,
+  onCopy,
+  height = '500px',
+  isExecuting = false,
+  testCases = [],
+  currentTestCase,
+  onTestCaseSelect,
+  executionOutput = '',
+  executionTime,
+  memoryUsage
+}: CodeEditorProps) => {
+  const editorRef = useRef<any>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fontSize, setFontSize] = useState(14);
+  const [theme, setTheme] = useState<'vs-dark' | 'light'>('vs-dark');
+  const [activeTab, setActiveTab] = useState<'test-cases' | 'console'>('test-cases');
+
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+  };
+    editorRef.current = editor;
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    onLanguageChange?.(newLanguage);
+    // Set default code for the new language if no value is provided
+    if (!value && DEFAULT_CODE[newLanguage as keyof typeof DEFAULT_CODE]) {
+      onChange?.(DEFAULT_CODE[newLanguage as keyof typeof DEFAULT_CODE]);
+    }
+  };
+
+  const handleReset = () => {
+    if (DEFAULT_CODE[language as keyof typeof DEFAULT_CODE]) {
+      onChange?.(DEFAULT_CODE[language as keyof typeof DEFAULT_CODE]);
+    }
+    onReset?.();
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const passedTests = testCases.filter(tc => tc.result === 'pass').length;
+  const totalTests = testCases.length;
+
+  return (
+    <div className="w-full">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Code Editor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div style={{ height }}>
+            <Editor
+              height="100%"
+              language={language}
+              value={value}
+              onChange={onChange}
+              onMount={handleEditorDidMount}
+              theme={theme}
+              options={{
+                minimap: { enabled: true },
+                fontSize: fontSize,
+                lineNumbers: 'on',
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default CodeEditor;
+
+export default CodeEditor;
