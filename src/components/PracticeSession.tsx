@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import CodeEditor from './CodeEditor';
 import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +15,8 @@ const PracticeSession = () => {
   const [expectedOutput, setExpectedOutput] = useState('');
   const [actualOutput, setActualOutput] = useState('');
   const [testResult, setTestResult] = useState<'pending' | 'pass' | 'fail' | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load saved state on component mount
   useEffect(() => {
@@ -89,9 +91,11 @@ const PracticeSession = () => {
     }
 
     setTestResult('pending');
+    setIsExecuting(true);
+    abortControllerRef.current = new AbortController();
 
     try {
-      const result = await ApiService.executeCppCode(code, input);
+      const result = await ApiService.executeCppCode(code, input, abortControllerRef.current.signal);
       setActualOutput(result.output);
 
       if (result.success) {
@@ -117,9 +121,17 @@ const PracticeSession = () => {
         console.error('Execution error:', result.output);
       }
     } catch (error) {
-      setTestResult('fail');
-      toast.error('Failed to execute code');
-      console.error('API error:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        setTestResult(null);
+        toast.info('Execution stopped');
+      } else {
+        setTestResult('fail');
+        toast.error('Failed to execute code');
+        console.error('API error:', error);
+      }
+    } finally {
+      setIsExecuting(false);
+      abortControllerRef.current = null;
     }
   }, [code, input, expectedOutput]);
 
@@ -162,6 +174,15 @@ const PracticeSession = () => {
       console.error('Clipboard error:', error);
     }
   }, [code]);
+
+  const handleStopExecution = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsExecuting(false);
+      setTestResult(null);
+      toast.info('Execution stopped');
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -324,9 +345,11 @@ const PracticeSession = () => {
             language={language}
             onLanguageChange={handleLanguageChange}
             onRun={handleRunCode}
+            onStop={handleStopExecution}
             onReset={handleResetCode}
             onCopy={handleCopyCode}
             height="600px"
+            isExecuting={isExecuting}
           />
         </div>
       </div>

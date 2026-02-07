@@ -49,7 +49,7 @@ app.post('/api/execute-cpp', async (req, res) => {
 
     // Call C++ executor service
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch(`${CPP_EXECUTOR_URL}/execute`, {

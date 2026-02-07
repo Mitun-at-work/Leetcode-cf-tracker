@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Code, Play, RotateCcw, Clock, Pause, Copy } from 'lucide-react';
+import { Code, Play, RotateCcw, Clock, Pause, Copy, Square } from 'lucide-react';
 
 interface CodeEditorProps {
   value?: string;
@@ -12,9 +12,11 @@ interface CodeEditorProps {
   language?: string;
   onLanguageChange?: (language: string) => void;
   onRun?: () => void;
+  onStop?: () => void;
   onReset?: () => void;
   onCopy?: () => void;
   height?: string;
+  isExecuting?: boolean;
 }
 
 const SUPPORTED_LANGUAGES = [
@@ -38,9 +40,11 @@ const CodeEditor = ({
   language = 'javascript',
   onLanguageChange,
   onRun,
+  onStop,
   onReset,
   onCopy,
-  height = '400px'
+  height = '400px',
+  isExecuting = false
 }: CodeEditorProps) => {
   const editorRef = useRef<any>(null);
 
@@ -287,10 +291,17 @@ const CodeEditor = ({
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
-              <Button onClick={onRun} variant="outline" size="sm">
-                <Play className="h-4 w-4 mr-2" />
-                Run
-              </Button>
+              {isExecuting ? (
+                <Button onClick={onStop} variant="destructive" size="sm">
+                  <Square className="h-4 w-4 mr-2" />
+                  Stop
+                </Button>
+              ) : (
+                <Button onClick={onRun} variant="outline" size="sm">
+                  <Play className="h-4 w-4 mr-2" />
+                  Run
+                </Button>
+              )}
               <Button onClick={handleReset} variant="outline" size="sm">
                 <RotateCcw className="h-4 w-4" />
               </Button>

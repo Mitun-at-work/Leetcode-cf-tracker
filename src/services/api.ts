@@ -197,7 +197,7 @@ class ApiService {
   }
 
   // Code execution
-  static async executeCppCode(code: string, input: string = ''): Promise<{ output: string; success: boolean }> {
+  static async executeCppCode(code: string, input: string = '', signal?: AbortSignal): Promise<{ output: string; success: boolean }> {
     const response = await fetch(`${API_BASE_URL}/api/execute-cpp`, {
       method: 'POST',
       headers: {
@@ -205,6 +205,7 @@ class ApiService {
         ...this.getHeaders(),
       },
       body: JSON.stringify({ code, input }),
+      signal,
     });
 
     if (!response.ok) {

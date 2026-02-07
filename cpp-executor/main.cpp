@@ -15,7 +15,7 @@
 #include <chrono>
 #include <thread>
 
-std::string exec_command(const std::string &cmd, int timeout_seconds = 10)
+std::string exec_command(const std::string &cmd, int timeout_seconds = 3)
 {
     int pipefd[2];
     if (pipe(pipefd) == -1)
