@@ -261,47 +261,55 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
 
   return (
     <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          Welcome back, {currentLevelName}!
+        </h2>
+        <p className="text-muted-foreground">Keep pushing forward on your coding journey</p>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Let’s go for 4 problems</CardTitle>
-            <Target className="h-6 w-6 text-muted-foreground" />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-blue-600 dark:text-blue-400">Daily Goal</CardTitle>
+            <Target className="h-6 w-6 text-blue-500" />
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{solvesToday} / 4</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{solvesToday} / 4</div>
               <div className="text-sm text-muted-foreground">Solved Today</div>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {remainingToday === 0 ? 'Today’s goal completed 🎉' : `${remainingToday} more to complete today’s task`}
+                {remainingToday === 0 ? '🎉 Goal completed!' : `${remainingToday} more to go`}
               </span>
-              {streakAtRisk && <Badge variant="destructive">Streak at risk</Badge>}
+              {streakAtRisk && <Badge variant="destructive" className="animate-pulse">Streak at risk</Badge>}
             </div>
-            <Progress value={dailyProgress} indicatorClassName={getProgressColor(dailyProgress)} />
+            <Progress value={dailyProgress} className="h-2" />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">XP & Level</CardTitle>
-            <Flame className="h-6 w-6 text-muted-foreground" />
+
+        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-orange-600 dark:text-orange-400">XP & Level</CardTitle>
+            <Flame className="h-6 w-6 text-orange-500" />
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className={`text-2xl font-bold ${getLevelColor(totalXp)}`}>Level {level}</div>
+              <div className={`text-3xl font-bold ${getLevelColor(totalXp)}`}>Level {level}</div>
               <div className="text-sm text-muted-foreground">{totalXp} XP</div>
             </div>
-            <div className="text-sm text-muted-foreground">{currentLevelName} • {xpToNext} XP to next level</div>
-            <Progress value={xpIntoLevel} indicatorClassName={getProgressColor(xpIntoLevel)} />
+            <div className="text-sm text-muted-foreground">{currentLevelName} • {xpToNext} XP to next</div>
+            <Progress value={xpIntoLevel} className="h-2" />
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Solve Streaks</CardTitle>
+            <CardTitle className="text-lg font-bold text-green-600 dark:text-green-400">Solve Streaks</CardTitle>
             <div className="flex gap-2">
               <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger className="w-24 h-8">
@@ -340,16 +348,13 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-center mb-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full border-4 border-green-500 flex items-center justify-center">
-                <div className="text-center">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
+                <div className="text-center text-white">
                   <div className="text-3xl font-bold">{currentStreak}</div>
-                  <div className="text-sm">Streak</div>
+                  <div className="text-sm opacity-90">Current Streak</div>
                 </div>
               </div>
             </div>
-          </div>
-          <div className="text-center text-sm text-muted-foreground">
-            Longest: {longestStreak} days
           </div>
           
           {/* LeetCode-style heatmap */}
@@ -441,42 +446,49 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
           </div>
         </CardContent>
       </Card>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Problems</CardTitle>
-            <BookCopy className="h-6 w-6 text-muted-foreground" />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-purple-600 dark:text-purple-400">Total Problems</CardTitle>
+            <BookCopy className="h-6 w-6 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalProblems}</div>
+            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{totalProblems}</div>
+            <p className="text-xs text-muted-foreground mt-1">Problems solved</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Solved This Week</CardTitle>
-            <CalendarDays className="h-6 w-6 text-muted-foreground" />
+
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">This Week</CardTitle>
+            <CalendarDays className="h-6 w-6 text-cyan-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{thisWeek}</div>
+            <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">{thisWeek}</div>
+            <p className="text-xs text-muted-foreground mt-1">Problems this week</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Marked for Review</CardTitle>
-            <Star className="h-6 w-6 text-muted-foreground" />
+
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">For Review</CardTitle>
+            <Star className="h-6 w-6 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{forReview}</div>
+            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{forReview}</div>
+            <p className="text-xs text-muted-foreground mt-1">Marked for review</p>
           </CardContent>
         </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Due for Review</CardTitle>
-                <Clock className="h-6 w-6 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{dueForReview}</div>
-            </CardContent>
+
+        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-semibold text-red-600 dark:text-red-400">Due Today</CardTitle>
+            <Clock className="h-6 w-6 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{dueForReview}</div>
+            <p className="text-xs text-muted-foreground mt-1">Due for review</p>
+          </CardContent>
         </Card>
       </div>
     </div>

@@ -111,7 +111,6 @@ export const handlers = [
           ...mockUser,
           settings: {
             reviewIntervals: [2, 4, 7],
-            enableNotifications: false,
             theme: 'system',
             timezone: 'UTC'
           },

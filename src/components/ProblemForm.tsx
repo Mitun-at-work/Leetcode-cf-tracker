@@ -18,9 +18,8 @@ interface ProblemFormProps {
   onUpdateProblem: (id: string, updates: Partial<Problem>) => void;
   onAddToSolveProblem?: (problem: Omit<Problem, 'id' | 'createdAt'>) => void;
   onUpdateToSolveProblem?: (id: string, updates: Partial<Problem>) => void;
-  onAddToMasterSheet?: (problem: Omit<Problem, 'id' | 'createdAt'>) => void;
   problemToEdit: Problem | null;
-  formContext?: 'regular' | 'tosolve' | 'mastersheet';
+  formContext?: 'regular' | 'tosolve';
 }
 
 type FormData = Omit<Problem, 'id' | 'createdAt' | 'problemId'>;
@@ -43,7 +42,7 @@ const INITIAL_FORM_STATE: FormData = {
 };
 
 
-const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddToSolveProblem, onUpdateToSolveProblem, onAddToMasterSheet, problemToEdit, formContext = 'regular' }: ProblemFormProps) => {
+const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddToSolveProblem, onUpdateToSolveProblem, problemToEdit, formContext = 'regular' }: ProblemFormProps) => {
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_STATE);
 
   useEffect(() => {
@@ -109,8 +108,6 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddT
     } else {
       if (formContext === 'tosolve' && onAddToSolveProblem) {
         onAddToSolveProblem(problemData);
-      } else if (formContext === 'mastersheet' && onAddToMasterSheet) {
-        onAddToMasterSheet(problemData);
       } else {
         onAddProblem(problemData);
       }
@@ -120,14 +117,13 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddT
 
   const isEditing = !!problemToEdit && !!problemToEdit.id;
   const isToSolveForm = formContext === 'tosolve' && !isEditing;
-  const isMasterSheetForm = formContext === 'mastersheet' && !isEditing;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Edit Problem' : isToSolveForm ? 'Add Problem to Solve' : isMasterSheetForm ? 'Add Problem to Master Sheet' : 'Add New Problem'}
+            {isEditing ? 'Edit Problem' : isToSolveForm ? 'Add Problem to Solve' : 'Add New Problem'}
           </DialogTitle>
           {/* DialogDescription removed as per new_code */}
         </DialogHeader>
@@ -255,7 +251,7 @@ const ProblemForm = ({ open, onOpenChange, onAddProblem, onUpdateProblem, onAddT
               Cancel
             </Button>
             <Button type="submit">
-              {isEditing ? 'Update Problem' : isToSolveForm ? 'Add to Solve List' : isMasterSheetForm ? 'Add to Master Sheet' : 'Add Problem'}
+              {isEditing ? 'Update Problem' : isToSolveForm ? 'Add to Solve List' : 'Add Problem'}
             </Button>
           </div>
         </form>

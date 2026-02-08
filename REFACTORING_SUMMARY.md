@@ -32,12 +32,6 @@ The App.tsx component has been extensively refactored to follow best practices, 
 
 - `addContest`, `updateContest`, `deleteContest`
 
-#### **useNotifications.ts** ([src/hooks/useNotifications.ts](src/hooks/useNotifications.ts))
-
-- Encapsulates notification logic
-- Checks for due reviews and upcoming contests
-- Requests notification permissions
-
 #### **useProblemForm.ts** ([src/hooks/useProblemForm.ts](src/hooks/useProblemForm.ts))
 
 - Manages problem form state
@@ -117,7 +111,6 @@ src/
 ├── hooks/
 │   ├── useProblems.ts (258 lines)
 │   ├── useContests.ts (45 lines)
-│   ├── useNotifications.ts (42 lines)
 │   └── useProblemForm.ts (23 lines)
 └── components/
     └── ProblemTabs.tsx (73 lines)

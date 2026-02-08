@@ -7,9 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme, ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { Badge } from '@/components/ui/badge';
 import { useProblems } from './hooks/useProblems';
-import { useNotifications } from './hooks/useNotifications';
 import { useProblemForm } from './hooks/useProblemForm';
 import { useAchievements } from './hooks/useAchievements';
 import type { Problem } from './types';
@@ -19,13 +17,15 @@ const Analytics = lazy(() => import('./components/Analytics'));
 const AchievementsGrid = lazy(() => import('./components/Achievements').then(m => ({ default: m.AchievementsGrid })));
 const ProblemTabs = lazy(() => import('./components/ProblemTabs'));
 const ToSolveProblemList = lazy(() => import('./components/ToSolveProblemList'));
-const MasterSheet = lazy(() => import('./components/MasterSheet'));
 const SettingsComponent = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 
 // Loading fallback component
 const ComponentLoader = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  <div className="flex items-center justify-center p-12">
+    <div className="relative">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20 border-t-primary"></div>
+      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/10 to-transparent animate-pulse"></div>
+    </div>
   </div>
 );
 
@@ -37,7 +37,6 @@ function App() {
     problems,
     potdProblems,
     toSolveProblems,
-    sections,
     activeProblems,
     reviewProblems,
     reviewPotdProblems,
@@ -50,22 +49,10 @@ function App() {
     updateToSolveProblem,
     deleteToSolveProblem,
     moveToSolveProblemToSolved,
-    addSection,
-    updateSection,
-    deleteSection,
-    reorderSections,
-    addProblemToSection,
-    removeProblemFromSection,
   } = useProblems();
 
   // Achievements hook
   const { achievements, unlockedCount, getAchievementProgress, stats } = useAchievements(problems);
-
-  const masterSheetProblemCount = useMemo(() => 
-    sections.reduce((total, section) => total + section.problemIds.length, 0) + 
-    problems.filter(p => p.inMasterSheet).length,
-    [sections, problems]
-  );
 
   const { isFormOpen, problemToEdit, formContext, openForm, setIsFormOpen } = useProblemForm();
 
@@ -122,6 +109,9 @@ function App() {
 
   const currentLevelName = getLevelName(totalXp);
   const nextLevelName = getLevelName(totalXp + 3000);
+  const level = useMemo(() => Math.floor(totalXp / 100) + 1, [totalXp]);
+  const xpIntoLevel = useMemo(() => totalXp % 100, [totalXp]);
+  const xpToNext = useMemo(() => 100 - xpIntoLevel, [xpIntoLevel]);
 
   const getLevelColor = (xp: number) => {
     const tier = Math.floor(xp / 3000);
@@ -148,62 +138,75 @@ function App() {
   };
 
 
-  // Notifications
-  useNotifications(problems, potdProblems, []);
-
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <div className="min-h-screen bg-background font-sans antialiased">
-        <header className="border-b">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 font-sans antialiased">
+        <header className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 backdrop-blur-sm">
           <div className="container mx-auto px-4">
-            <div className="relative flex items-center h-16">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">LC</span>
+            <div className="relative flex items-center h-20">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-primary-foreground font-bold text-lg">LC</span>
                 </div>
-                <h1 className="text-xl font-semibold">Problem Tracker</h1>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Problem Tracker</h1>
+                  <p className="text-sm text-muted-foreground">Master your coding journey</p>
+                </div>
               </div>
 
-              <div className="absolute left-1/2 -translate-x-1/2 text-base font-semibold">
-                <span className={getLevelColor(totalXp)}>{currentLevelName}</span>
-                <span className="text-muted-foreground"> → </span>
-                <span className={`${getLevelColor(totalXp + 3000)} animate-pulse drop-shadow`}>{nextLevelName}</span>
-              </div>
-
-              <div className="ml-auto flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-red-500">
-                  <Zap className="h-5 w-5" />
-                  <span className="text-sm font-semibold">{stats?.currentStreak || 0}</span>
+              <div className="ml-auto flex items-center space-x-6">
+                <div className="flex items-center space-x-2 px-3 py-2 bg-red-500/10 rounded-full border border-red-500/20">
+                  <Zap className="h-5 w-5 text-red-500" />
+                  <span className="text-sm font-bold text-red-500">{stats?.currentStreak || 0}</span>
+                  <span className="text-xs text-muted-foreground">streak</span>
                 </div>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button className="flex flex-col items-start text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      <span className="flex items-center space-x-2">
+                    <button className="flex flex-col items-start text-sm text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105">
+                      <div className="flex items-center space-x-2 px-3 py-2 bg-orange-500/10 rounded-full border border-orange-500/20">
                         <Flame className="h-5 w-5 text-orange-500" />
-                        <span className="font-medium text-foreground">{totalXp} XP</span>
-                      </span>
+                        <span className="font-bold text-foreground">{totalXp}</span>
+                        <span className="text-xs text-muted-foreground">XP</span>
+                      </div>
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-64">
-                    <div className="space-y-2">
-                      <div className="text-sm font-semibold">XP Ranges</div>
-                      <ul className="space-y-1 text-sm">
-                        <li className="flex items-center justify-between"><span className="text-gray-500">0–2999</span><span className="text-gray-500">Novice</span></li>
-                        <li className="flex items-center justify-between"><span className="text-green-500">3000–5999</span><span className="text-green-500">Rookie</span></li>
-                        <li className="flex items-center justify-between"><span className="text-cyan-500">6000–8999</span><span className="text-cyan-500">Adept</span></li>
-                        <li className="flex items-center justify-between"><span className="text-violet-500">9000–11999</span><span className="text-violet-500">Specialist</span></li>
-                        <li className="flex items-center justify-between"><span className="text-orange-500">12000–14999</span><span className="text-orange-500">Expert</span></li>
-                        <li className="flex items-center justify-between"><span className="text-yellow-500">15000–17999</span><span className="text-yellow-500">Elite</span></li>
-                        <li className="flex items-center justify-between"><span className="text-pink-500">18000–20999</span><span className="text-pink-500">Veteran</span></li>
-                        <li className="flex items-center justify-between"><span className="text-amber-800">21000–23999</span><span className="text-amber-800">Champion</span></li>
-                        <li className="flex items-center justify-between"><span className="text-red-500">24000+</span><span className="text-red-500">Legend</span></li>
-                      </ul>
+                    <div className="space-y-3">
+                      <div className="text-sm font-bold">XP Progression</div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Current Level</span>
+                          <span className="font-semibold">{currentLevelName}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Next Level</span>
+                          <span className="font-semibold">{nextLevelName}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">XP to Next</span>
+                          <span className="font-semibold">{xpToNext} XP</span>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <div className="text-xs font-semibold text-muted-foreground mb-2">Level Tiers</div>
+                        <ul className="space-y-1 text-xs">
+                          <li className="flex items-center justify-between"><span className="text-gray-500">0–2999</span><span className="text-gray-500">Novice</span></li>
+                          <li className="flex items-center justify-between"><span className="text-green-500">3000–5999</span><span className="text-green-500">Rookie</span></li>
+                          <li className="flex items-center justify-between"><span className="text-cyan-500">6000–8999</span><span className="text-cyan-500">Adept</span></li>
+                          <li className="flex items-center justify-between"><span className="text-violet-500">9000–11999</span><span className="text-violet-500">Specialist</span></li>
+                          <li className="flex items-center justify-between"><span className="text-orange-500">12000–14999</span><span className="text-orange-500">Expert</span></li>
+                          <li className="flex items-center justify-between"><span className="text-yellow-500">15000–17999</span><span className="text-yellow-500">Elite</span></li>
+                          <li className="flex items-center justify-between"><span className="text-pink-500">18000–20999</span><span className="text-pink-500">Veteran</span></li>
+                          <li className="flex items-center justify-between"><span className="text-amber-800">21000–23999</span><span className="text-amber-800">Champion</span></li>
+                          <li className="flex items-center justify-between"><span className="text-red-500">24000+</span><span className="text-red-500">Legend</span></li>
+                        </ul>
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>
                 <Suspense fallback={<ComponentLoader />}>
                   <SettingsComponent onSettingsSave={() => {}}>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="hover:bg-muted/50 transition-colors">
                       <SettingsIcon className="h-6 w-6" />
                     </Button>
                   </SettingsComponent>
@@ -213,6 +216,7 @@ function App() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   <Sun className="h-6 w-6 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                   <Moon className="absolute h-6 w-6 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -234,56 +238,52 @@ function App() {
           formContext={formContext}
         />
 
-        <main className="container py-8">
-          <Tabs defaultValue="dashboard" className="p-4 sm:p-6 md:p-8">
-            <div className="flex items-center justify-between pb-4 gap-4">
-              <TabsList>
-                <TabsTrigger value="dashboard">
-                  <Home className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Dashboard</span>
+        <main className="container py-8 px-4">
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <div className="flex items-center justify-between pb-6">
+              <TabsList className="bg-card/50 backdrop-blur-sm border shadow-lg p-1 h-auto">
+                <TabsTrigger value="dashboard" className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200">
+                  <Home className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Dashboard</span>
                 </TabsTrigger>
-                <TabsTrigger value="problems">
-                  <List className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Problems</span>
+                <TabsTrigger value="problems" className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200">
+                  <List className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Problems</span>
                 </TabsTrigger>
-                <TabsTrigger value="mastersheet">
-                  <BookMarked className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Master Sheet</span>
-                </TabsTrigger>
-                <TabsTrigger value="tosolve">
-                  <Target className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Pick to Solve</span>
+                <TabsTrigger value="tosolve" className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 relative">
+                  <Target className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Pick to Solve</span>
                   {toSolveProblems.length > 0 && (
-                    <div className="ml-2 h-2 w-2 bg-red-500 rounded-full"></div>
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></div>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="review">
-                  <Star className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Review</span>
+                <TabsTrigger value="review" className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 relative">
+                  <Star className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Review</span>
                   {dueReviewCount > 0 && (
-                    <div className="ml-2 h-2 w-2 bg-red-500 rounded-full"></div>
+                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></div>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="achievements">
-                  <Trophy className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Achievements</span>
+                <TabsTrigger value="achievements" className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200">
+                  <Trophy className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Achievements</span>
                 </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  <BarChart3 className="h-5 w-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Analytics</span>
+                <TabsTrigger value="analytics" className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200">
+                  <BarChart3 className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Analytics</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="dashboard">
+            <TabsContent value="dashboard" className="space-y-6">
               <Dashboard
                 problems={problems}
               />
             </TabsContent>
 
-            <TabsContent value="problems">
-              <div className="flex justify-end pb-4">
-                <Button onClick={() => openForm()}>
+            <TabsContent value="problems" className="space-y-6">
+              <div className="flex justify-end">
+                <Button onClick={() => openForm()} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg transition-all duration-200 hover:scale-105">
                   <div className="flex items-center">
                     <Plus className="h-5 w-5 mr-2" />
                     <span>Add Problem</span>
@@ -297,31 +297,13 @@ function App() {
                   onDeleteProblem={deleteProblem}
                   onProblemReviewed={markProblemReviewed}
                   onEditProblem={openForm}
-                  sections={sections}
-                  onAddProblemToSection={addProblemToSection}
                 />
               </Suspense>
             </TabsContent>
 
-            <TabsContent value="mastersheet">
-              <Suspense fallback={<ComponentLoader />}>
-                <MasterSheet
-                  sections={sections}
-                  problems={problems}
-                  onAddSection={addSection}
-                  onUpdateSection={updateSection}
-                  onDeleteSection={deleteSection}
-                  onReorderSections={reorderSections}
-                  onAddProblemToSection={addProblemToSection}
-                  onRemoveProblemFromSection={removeProblemFromSection}
-                  onUpdateProblem={updateProblem}
-                />
-              </Suspense>
-            </TabsContent>
-
-            <TabsContent value="tosolve">
-              <div className="flex justify-end pb-4">
-                <Button onClick={() => openForm(null, 'tosolve')}>
+            <TabsContent value="tosolve" className="space-y-6">
+              <div className="flex justify-end">
+                <Button onClick={() => openForm(null, 'tosolve')} className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg transition-all duration-200 hover:scale-105">
                   <div className="flex items-center">
                     <Plus className="h-5 w-5 mr-2" />
                     <span>Add Problem to Solve</span>
@@ -346,8 +328,6 @@ function App() {
                 onDeleteProblem={deleteProblem}
                 onProblemReviewed={markProblemReviewed}
                 onEditProblem={openForm}
-                sections={sections}
-                onAddProblemToSection={addProblemToSection}
               />
             </TabsContent>
 

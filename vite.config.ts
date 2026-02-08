@@ -43,7 +43,7 @@ export default defineConfig({
           // Form handling
           if (id.includes('node_modules/react-hook-form')) return 'vendor-forms';
           
-          // Notifications
+          // Toast notifications
           if (id.includes('node_modules/sonner')) return 'vendor-notifications';
           
           // Utility libraries

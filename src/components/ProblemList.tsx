@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
-import type { Problem, Section } from '../types';
+import type { Problem } from '../types';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -31,14 +31,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { startOfDay } from 'date-fns';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { topics } from '@/lib/topics';
-import { toast } from 'sonner';
 
 const PLATFORM_LABELS: Record<Problem['platform'], string> = {
   leetcode: 'LeetCode',
@@ -56,8 +54,6 @@ interface ProblemListProps {
   onEditProblem: (problem: Problem) => void;
   onProblemReviewed: (id: string, currentInterval: number) => void;
   isReviewList?: boolean;
-  sections?: Section[];
-  onAddProblemToSection?: (sectionId: string, problemId: string) => void;
 }
 
 const ProblemList = memo(({ 
@@ -66,16 +62,13 @@ const ProblemList = memo(({
   onDeleteProblem, 
   onEditProblem, 
   onProblemReviewed, 
-  isReviewList = false,
-  sections = [],
-  onAddProblemToSection
+  isReviewList = false
 }: ProblemListProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [problemToDelete, setProblemToDelete] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [problemToAddToSection, setProblemToAddToSection] = useState<Problem | null>(null);
   
   // Filter states
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Problem['platform']>>(new Set());
@@ -256,7 +249,7 @@ const ProblemList = memo(({
                         <Filter className="mr-2 h-4 w-4" />
                         Platform
                         {selectedPlatforms.size > 0 && (
-                          <Badge variant="secondary" className="ml-2 rounded-full px-1 min-w-[1.25rem] h-5">
+                          <Badge variant="secondary" className="ml-2 rounded-full px-1 min-w-[1.00rem] h-5">
                             {selectedPlatforms.size}
                           </Badge>
                         )}
@@ -489,7 +482,7 @@ const ProblemList = memo(({
         )}
 
         <div className="rounded-md border">
-          <Table>
+          <Table className="[&_td]:px-1 [&_th]:px-1 [&_table]:border-collapse">
             <TableHeader>
               <TableRow>
                 <TableHead>Problem</TableHead>
@@ -587,11 +580,6 @@ const ProblemList = memo(({
                                 {problem.isReview ? 'Unmark review' : 'Mark for review'}
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem onClick={() => setProblemToAddToSection(problem)}>
-                                <BookMarked className="mr-2 h-5 w-5" />
-                                {problem.inMasterSheet ? 'Remove from Master Sheet' : 'Add to Master Sheet'}
-                              </DropdownMenuItem>
-
                               <DropdownMenuItem onClick={() => setProblemToDelete(problem.id)}>
                                 <Trash2 className="mr-2 h-5 w-5" />
                                 Delete
@@ -604,9 +592,9 @@ const ProblemList = memo(({
                     {expandedRows.has(problem.id) && (
                       <TableRow>
                         <TableCell colSpan={6}>
-                          <div className="p-4 bg-muted/50 rounded-md">
-                            <h4 className="font-semibold mb-2">Notes</h4>
-                            <div className="prose dark:prose-invert max-w-none">
+                          <div className="p-2 bg-muted/30 rounded-md">
+                            <h4 className="font-medium text-sm mb-1">Notes</h4>
+                            <div className="prose prose-sm dark:prose-invert max-w-none max-h-32 overflow-y-auto text-sm">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {problem.notes || 'No notes for this problem.'}
                               </ReactMarkdown>
@@ -651,67 +639,6 @@ const ProblemList = memo(({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Section Selection Dialog */}
-      <Dialog open={!!problemToAddToSection} onOpenChange={() => setProblemToAddToSection(null)}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Add to Master Sheet</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Select a section to add "{problemToAddToSection?.title}" to:
-            </p>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-              {sections.map((section) => (
-                <div
-                  key={section.id}
-                  className="relative p-4 border border-border rounded-lg hover:border-primary hover:bg-accent/50 cursor-pointer transition-all duration-200 group"
-                  onClick={() => {
-                    if (problemToAddToSection && onAddProblemToSection) {
-                      // Add problem to section
-                      onAddProblemToSection(section.id, problemToAddToSection.id);
-                      // Mark problem as in master sheet
-                      onUpdateProblem(problemToAddToSection.id, { inMasterSheet: true });
-                      setProblemToAddToSection(null);
-                      toast.success(`Added to "${section.name}" section`);
-                    }
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
-                        {section.name}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {section.problemIds.length} problem{section.problemIds.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <svg className="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {sections.length === 0 && (
-                <div className="col-span-full text-center py-8">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
-                    <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2">No sections available</p>
-                  <p className="text-xs text-muted-foreground">Create a section in the Master Sheet tab first.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 });

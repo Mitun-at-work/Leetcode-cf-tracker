@@ -16,14 +16,7 @@ export interface Problem {
   topics: string[];
   status: 'active' | 'learned';
   companies: string[];
-  inMasterSheet?: boolean;
   toSolve?: boolean;
-}
-
-export interface Section {
-  id: string;
-  name: string;
-  problemIds: string[];
 }
 
 export interface PlatformStats {
@@ -140,7 +133,6 @@ export interface User {
 
 export interface UserSettings {
   reviewIntervals: number[];
-  enableNotifications: boolean;
   theme: 'light' | 'dark' | 'system';
   timezone: string;
 }
@@ -206,7 +198,6 @@ export interface AchievementStats {
   platformCounts: Record<string, number>;
   difficultyCounts: Record<string, number>;
   topicCounts: Record<string, number>;
-  mastersheetCount: number;
   reviewCount: number;
   learnedCount: number;
   xp: number;
@@ -230,6 +221,5 @@ export interface ImportedProblemData {
   topics?: string[];
   status?: 'active' | 'learned';
   companies?: string[];
-  inMasterSheet?: boolean;
   toSolve?: boolean;
 }

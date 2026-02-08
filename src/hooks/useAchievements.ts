@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Achievement, AchievementStats, Problem } from '../types';
 import { ACHIEVEMENTS } from '../lib/achievements';
-import { toast } from 'sonner';
 
 const ACHIEVEMENTS_KEY = 'leetcode-cf-tracker-achievements';
 const ACHIEVEMENTS_VERSION = 'v2'; // Increment this to force refresh
@@ -16,7 +15,6 @@ export const useAchievements = (problems: Problem[]) => {
     const totalProblems = problems.length;
     const learnedCount = problems.filter(p => p.status === 'learned').length;
     const reviewCount = problems.filter(p => p.isReview).length;
-    const mastersheetCount = problems.filter(p => p.inMasterSheet).length;
 
     // Platform counts
     const platformCounts = problems.reduce((acc, p) => {
@@ -125,7 +123,6 @@ export const useAchievements = (problems: Problem[]) => {
       platformCounts,
       difficultyCounts,
       topicCounts,
-      mastersheetCount,
       reviewCount,
       learnedCount,
       xp,
@@ -205,9 +202,6 @@ export const useAchievements = (problems: Problem[]) => {
 
       // If condition is met and it wasn't unlocked before, unlock it
       if (conditionMet && !achievement.unlockedAt) {
-        toast.success(`🎉 Achievement Unlocked: ${achievement.name}!`, {
-          description: achievement.description,
-        });
         return {
           ...achievement,
           unlockedAt: new Date().toISOString(),

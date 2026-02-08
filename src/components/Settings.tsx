@@ -16,15 +16,7 @@ import { getDailyGoal, getReviewIntervals, saveDailyGoal, saveReviewIntervals } 
 import { toast } from 'sonner';
 import { X, Plus } from 'lucide-react';
 import StorageService from '@/utils/storage';
-import { Switch } from '@/components/ui/switch';
 import type { ImportedProblemData } from '@/types';
-
-interface ImportedSectionData {
-  id?: string;
-  name?: string;
-  problemIds?: string[];
-  isAutomatic?: boolean; // For backward compatibility
-}
 
 interface SettingsProps {
   children: React.ReactNode;
@@ -34,14 +26,11 @@ interface SettingsProps {
 export function Settings({ children, onSettingsSave }: SettingsProps) {
   const [open, setOpen] = useState(false);
   const [intervals, setIntervals] = useState<number[]>([]);
-  // Add state for notifications toggle
-  const [enableNotifications, setEnableNotifications] = useState(false);
   const [dailyGoal, setDailyGoal] = useState(1);
 
   useEffect(() => {
     if (open) {
       setIntervals(getReviewIntervals());
-      setEnableNotifications(localStorage.getItem('enableNotifications') === 'true');
       setDailyGoal(getDailyGoal());
     }
   }, [open]);
@@ -75,7 +64,6 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
     onSettingsSave(intervals);
     toast.success('Settings saved!');
     setOpen(false);
-    localStorage.setItem('enableNotifications', enableNotifications.toString());
   };
 
   // Function to export data
@@ -84,21 +72,12 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       const problems = await StorageService.getProblems();
       const cleanedProblems = problems.map(({ companies: _companies, ...rest }) => rest);
       
-      const sections = await StorageService.getSections();
-      const cleanedSections = sections.map((section: ImportedSectionData) => ({
-        id: section.id,
-        name: section.name,
-        problemIds: section.problemIds,
-      }));
-      
       const data = {
         problems: cleanedProblems,
         toSolveProblems: await StorageService.getToSolveProblems(),
-        sections: cleanedSections,
         contests: await StorageService.getContests(),
         reviewIntervals: getReviewIntervals(),
         dailyGoal: getDailyGoal(),
-        enableNotifications: localStorage.getItem('enableNotifications') === 'true',
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -125,11 +104,9 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
           const potdProblems = Array.isArray(data.potdProblems) ? data.potdProblems : [];
           const companyProblems = Array.isArray(data.companyProblems) ? data.companyProblems : [];
           const toSolveProblems = Array.isArray(data.toSolveProblems) ? data.toSolveProblems : [];
-          const sections = Array.isArray(data.sections) ? data.sections : [];
           const contests = Array.isArray(data.contests) ? data.contests : [];
           const reviewIntervals = Array.isArray(data.reviewIntervals) ? data.reviewIntervals : getReviewIntervals();
           const dailyGoal = typeof data.dailyGoal === 'number' && data.dailyGoal > 0 ? data.dailyGoal : getDailyGoal();
-          const enableNotifications = typeof data.enableNotifications === 'boolean' ? data.enableNotifications : (localStorage.getItem('enableNotifications') === 'true');
 
           const normalizeProblem = (p: ImportedProblemData) => ({
             ...p,
@@ -144,27 +121,17 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
             status: p?.status || 'active',
             companies: Array.isArray(p?.companies) ? p.companies : [],
             topics: Array.isArray(p?.topics) ? p.topics : [],
-            inMasterSheet: typeof p?.inMasterSheet === 'boolean' ? p.inMasterSheet : false,
             toSolve: typeof p?.toSolve === 'boolean' ? p.toSolve : false,
-          });
-
-          const normalizeSection = (s: ImportedSectionData) => ({
-            id: s?.id || crypto.randomUUID(),
-            name: s?.name || 'Unnamed Section',
-            problemIds: Array.isArray(s?.problemIds) ? s.problemIds : [],
           });
 
           await StorageService.saveProblems(problems.map(normalizeProblem));
           await StorageService.savePotdProblems(potdProblems.map(normalizeProblem));
           await StorageService.saveCompanyProblems(companyProblems.map(normalizeProblem));
           await StorageService.saveToSolveProblems(toSolveProblems.map(normalizeProblem));
-          await StorageService.saveSections(sections.map(normalizeSection));
           await StorageService.saveContests(contests);
           saveReviewIntervals(reviewIntervals);
           saveDailyGoal(dailyGoal);
           onSettingsSave(reviewIntervals);
-          localStorage.setItem('enableNotifications', enableNotifications.toString());
-          setEnableNotifications(enableNotifications);
           setDailyGoal(dailyGoal);
           toast.success('Data imported successfully! Please refresh the page.');
         } catch (_error) {
@@ -191,10 +158,8 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
       localStorage.removeItem('offline-mode');
       localStorage.removeItem('leetcode-cf-tracker-review-intervals');
       localStorage.removeItem('leetcode-cf-tracker-daily-goal');
-      localStorage.removeItem('enableNotifications');
       setIntervals(getReviewIntervals());
       setDailyGoal(getDailyGoal());
-      setEnableNotifications(false);
       toast.success('All local data reset. Please refresh the page.');
     } catch (_error) {
       toast.error('Failed to reset data');
@@ -235,16 +200,6 @@ export function Settings({ children, onSettingsSave }: SettingsProps) {
               <Plus className="mr-2 h-4 w-4" />
               Add Interval
             </Button>
-          </div>
-          <div className="space-y-2">
-            <Label>Enable Browser Notifications</Label>
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={enableNotifications}
-                onCheckedChange={setEnableNotifications}
-              />
-              <span className="text-sm text-muted-foreground">Get reminders for reviews and contests</span>
-            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="daily-goal">Daily Goal (problems)</Label>

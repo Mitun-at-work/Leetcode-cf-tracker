@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Problem, ActiveDailyCodingChallengeQuestion, Section } from '../types';
+import type { Problem, ActiveDailyCodingChallengeQuestion } from '../types';
 import StorageService from '../utils/storage';
 import { toast } from 'sonner';
 
@@ -10,26 +10,23 @@ export const useProblems = () => {
   const [potdProblems, setPotdProblems] = useState<Problem[]>([]);
   const [companyProblems, setCompanyProblems] = useState<Problem[]>([]);
   const [toSolveProblems, setToSolveProblems] = useState<Problem[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [problemsData, potdData, companyData, toSolveData, sectionsData] = await Promise.all([
+        const [problemsData, potdData, companyData, toSolveData] = await Promise.all([
           StorageService.getProblems(),
           StorageService.getPotdProblems(),
           StorageService.getCompanyProblems(),
           StorageService.getToSolveProblems(),
-          StorageService.getSections(),
         ]);
 
         setProblems(problemsData);
         setPotdProblems(potdData);
         setCompanyProblems(companyData);
         setToSolveProblems(toSolveData);
-        setSections(sectionsData);
       } catch (_error) {
         toast.error('Failed to load data');
       } finally {
@@ -44,7 +41,7 @@ export const useProblems = () => {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (isLoaded && (problems.length > 0 || toSolveProblems.length > 0 || sections.length > 0)) {
+    if (isLoaded && (problems.length > 0 || toSolveProblems.length > 0)) {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       
       saveTimeoutRef.current = setTimeout(() => {
@@ -52,14 +49,13 @@ export const useProblems = () => {
         StorageService.savePotdProblems(potdProblems);
         StorageService.saveCompanyProblems(companyProblems);
         StorageService.saveToSolveProblems(toSolveProblems);
-        StorageService.saveSections(sections);
       }, 500); // Debounce saves to 500ms
     }
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [problems, potdProblems, companyProblems, toSolveProblems, sections, isLoaded]);
+  }, [problems, potdProblems, companyProblems, toSolveProblems, isLoaded]);
 
   const addProblem = useCallback((problem: Omit<Problem, 'id' | 'createdAt'>) => {
     const newProblem: Problem = {
@@ -94,11 +90,6 @@ export const useProblems = () => {
 
         return updatedProblem;
       });
-
-      // Save immediately if inMasterSheet is being updated
-      if (updates.inMasterSheet !== undefined) {
-        StorageService.saveProblems(newProblems);
-      }
 
       return newProblems;
     });
@@ -318,43 +309,6 @@ export const useProblems = () => {
     toast.success('Problem moved to solved list!');
   }, []);
 
-  // Master sheet sections operations
-  const addSection = useCallback((name: string) => {
-    const newSection: Section = {
-      id: crypto.randomUUID(),
-      name,
-      problemIds: [],
-    };
-    setSections(prev => [...prev, newSection]);
-  }, []);
-
-  const updateSection = useCallback((id: string, name: string) => {
-    setSections(prev =>
-      prev.map(s => (s.id === id ? { ...s, name } : s))
-    );
-  }, []);
-
-  const deleteSection = useCallback((id: string) => {
-    setSections(prev => prev.filter(s => s.id !== id));
-  }, []);
-
-  const reorderSections = useCallback((reorderedSections: Section[]) => {
-    setSections(reorderedSections);
-  }, []);
-
-  const addProblemToSection = useCallback((sectionId: string, problemId: string) => {
-    setSections(prev =>
-      prev.map(s => (s.id === sectionId ? { ...s, problemIds: [...s.problemIds, problemId] } : s))
-    );
-  }, []);
-
-  const removeProblemFromSection = useCallback((sectionId: string, problemId: string) => {
-    setSections(prev =>
-      prev.map(s => (s.id === sectionId ? { ...s, problemIds: s.problemIds.filter(id => id !== problemId) } : s))
-    );
-    // Optionally remove from problems if not in any section, but for now keep it
-  }, []);
-
   // Computed values
   const activeProblems = problems.filter(p => p.status === 'active');
   const reviewProblems = activeProblems.filter(p => p.isReview && p.nextReviewDate);
@@ -369,7 +323,6 @@ export const useProblems = () => {
     potdProblems,
     companyProblems,
     toSolveProblems,
-    sections,
     isLoaded,
     activeProblems,
     reviewProblems,
@@ -390,11 +343,5 @@ export const useProblems = () => {
     updateToSolveProblem,
     deleteToSolveProblem,
     moveToSolveProblemToSolved,
-    addSection,
-    updateSection,
-    deleteSection,
-    reorderSections,
-    addProblemToSection,
-    removeProblemFromSection,
   };
 };
