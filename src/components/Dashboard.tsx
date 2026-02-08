@@ -163,10 +163,13 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
       checkDate = subDays(new Date(checkDate), 1).getTime();
     }
     
-    return { currentStreak, longestStreak };
+    const lastSolveDate = solveDates.length > 0 ? new Date(Math.max(...solveDates)) : null;
+    const daysMissed = lastSolveDate ? differenceInDays(today, lastSolveDate) : 0;
+    
+    return { currentStreak, longestStreak, daysMissed };
   }, []);
 
-  const { currentStreak, longestStreak } = useMemo(() => calculateStreaks(problems), [calculateStreaks, problems]);
+  const { currentStreak, longestStreak, daysMissed } = useMemo(() => calculateStreaks(problems), [calculateStreaks, problems]);
 
   // For calendar: calculate date range based on selected year and month
   const { startDate, endDate } = useMemo(() => {
@@ -306,7 +309,7 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
         </Card>
       </div>
 
-      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-bold text-green-600 dark:text-green-400">Solve Streaks</CardTitle>
@@ -350,8 +353,8 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
             <div className="relative">
               <div className="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
                 <div className="text-center text-white">
-                  <div className="text-3xl font-bold">{currentStreak}</div>
-                  <div className="text-sm opacity-90">Current Streak</div>
+                  <div className="text-3xl font-bold">{daysMissed}</div>
+                  <div className="text-sm opacity-90">Days Since Last Solve</div>
                 </div>
               </div>
             </div>
@@ -411,13 +414,8 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
                               isOutOfRange 
                                 ? 'bg-gray-100 dark:bg-gray-800' 
                                 : getColor(cell.count)
-                            } hover:ring-1 hover:ring-gray-400 transition-all cursor-default`}
+                            }`}
                             style={selectedMonth !== 'all' ? { width: '14px', height: '14px' } : {}}
-                            title={
-                              isOutOfRange 
-                                ? `${format(cell.date, 'MMM d, yyyy')}: Out of range`
-                                : `${format(cell.date, 'MMM d, yyyy')}: ${cell.count} ${cell.count === 1 ? 'problem' : 'problems'}`
-                            }
                           />
                         );
                       })}
@@ -447,7 +445,7 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
         </CardContent>
       </Card>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold text-purple-600 dark:text-purple-400">Total Problems</CardTitle>
             <BookCopy className="h-6 w-6 text-purple-500" />
@@ -458,7 +456,7 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">This Week</CardTitle>
             <CalendarDays className="h-6 w-6 text-cyan-500" />
@@ -469,7 +467,7 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">For Review</CardTitle>
             <Star className="h-6 w-6 text-yellow-500" />
@@ -480,7 +478,7 @@ const Dashboard = memo(({ problems }: DashboardProps) => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-semibold text-red-600 dark:text-red-400">Due Today</CardTitle>
             <Clock className="h-6 w-6 text-red-500" />
